@@ -1,0 +1,99 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 28,
+        "patch": 0
+    },
+
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+
+        {
+            "name": "macos-debug",
+            "inherits": "base",
+            "displayName": "macOS Debug (Ninja + Apple Clang)",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
+            }
+        },
+
+        {
+            "name": "macos-release",
+            "inherits": "base",
+            "displayName": "macOS Release (Ninja + Apple Clang)",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
+            }
+        },
+
+        {
+            "name": "linux-debug",
+            "inherits": "base",
+            "displayName": "Linux Debug (Ninja + Clang)",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+
+        {
+            "name": "windows-debug",
+            "inherits": "base",
+            "displayName": "Windows Debug (Ninja + clang-cl)",
+            "generator": "Ninja",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang-cl"
+            }
+        }
+    ],
+
+    "buildPresets": [
+        { "name": "macos-debug",   "configurePreset": "macos-debug",   "jobs": 0 },
+        { "name": "macos-release", "configurePreset": "macos-release", "jobs": 0 },
+        { "name": "linux-debug",   "configurePreset": "linux-debug",   "jobs": 0 },
+        { "name": "windows-debug", "configurePreset": "windows-debug", "jobs": 0 }
+    ],
+
+    "testPresets": [
+        {
+            "name": "macos-debug",
+            "configurePreset": "macos-debug",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": false }
+        }
+    ]
+}

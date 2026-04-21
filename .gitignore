@@ -1,0 +1,29 @@
+# Build artifacts
+build/
+out/
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+compile_commands.json
+
+# ccache
+.ccache/
+
+# OS noise
+Thumbs.db

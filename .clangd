@@ -1,0 +1,27 @@
+CompileFlags:
+  CompilationDatabase: build/macos-debug
+  Add:
+    - -Wall
+    - -Wextra
+  Remove:
+    - -W*pedantic*
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - modernize-*
+      - readability-*
+      - performance-*
+      - bugprone-*
+    Remove:
+      - modernize-use-trailing-return-type
+      - readability-identifier-length
+  UnusedIncludes: Strict
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+
+Index:
+  Background: Build
