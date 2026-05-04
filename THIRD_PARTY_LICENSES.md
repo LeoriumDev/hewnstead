@@ -4,9 +4,7 @@ Hewnstead bundles or links against the following libraries. All are
 permissive licenses compatible with Hewnstead's MIT license. Full
 license texts are reproduced below as required by their terms.
 
-================================================================================
-GLFW 3.4 — zlib/libpng License
-================================================================================
+## GLFW 3.4 — zlib/libpng License
 
 Source: https://github.com/glfw/glfw
 
@@ -32,18 +30,14 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source
    distribution.
 
-================================================================================
-GLAD2 — multi-license
-================================================================================
+## GLAD2 — multi-license
 
 Source: https://github.com/Dav1dde/glad
 
 GLAD2 contains three license sections covering different parts of the
 generated code.
 
-----------------------------------------
-1. The glad source code — MIT License
-----------------------------------------
+### 1. The glad source code — MIT License
 
 The MIT License (MIT)
 
@@ -66,9 +60,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-----------------------------------------
-2. The Khronos Specifications — Apache License 2.0
-----------------------------------------
+### 2. The Khronos Specifications — Apache License 2.0
 
 Copyright (c) 2013-2020 The Khronos Group Inc.
 
@@ -76,7 +68,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+> http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -84,9 +76,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-----------------------------------------
-3. The EGL Specification and various headers — Khronos MIT-style
-----------------------------------------
+### 3. The EGL Specification and various headers — Khronos MIT-style
 
 Copyright (c) 2007-2016 The Khronos Group Inc.
 
@@ -109,9 +99,7 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
-================================================================================
-GLM 1.0.3 — MIT License
-================================================================================
+## GLM 1.0.3 — MIT License
 
 Source: https://github.com/g-truc/glm
 
@@ -141,9 +129,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-================================================================================
-spdlog 1.17.0 — MIT License
-================================================================================
+## spdlog 1.17.0 — MIT License
 
 Source: https://github.com/gabime/spdlog
 
@@ -169,9 +155,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-================================================================================
-{fmt} (bundled with spdlog) — MIT License
-================================================================================
+## {fmt} (bundled with spdlog) — MIT License
 
 Source: https://github.com/fmtlib/fmt
 
