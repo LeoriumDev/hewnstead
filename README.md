@@ -16,8 +16,28 @@ git clone https://github.com/LeoriumDev/hewnstead.git
 cd hewnstead
 cmake --preset macos-debug
 cmake --build --preset macos-debug
-./build/macos-debug/hewnstead
+cd build/macos-debug && ./hewnstead
 ```
+
+### Convenience scripts
+
+For a faster dev loop, the `scripts/` directory provides one-liner wrappers:
+
+```bash
+./scripts/build.sh      # configure + build
+./scripts/run.sh        # configure + build + run
+./scripts/clean.sh      # remove build directory
+```
+
+Optional shell aliases (add to `~/.zshrc` or `~/.bashrc`):
+
+```bash
+alias hsbuild='[path-to-hewnstead]/scripts/build.sh'
+alias hsrun='[path-to-hewnstead]/scripts/run.sh'
+alias hsclean='[path-to-hewnstead]/scripts/clean.sh'
+```
+
+After sourcing, `hsbuild` / `hsrun` / `hsclean` work from any directory.
 
 ## License
 

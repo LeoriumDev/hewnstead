@@ -74,4 +74,5 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 endif()
 
 add_executable(hewnstead src/main.cpp)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(hewnstead PRIVATE hewnstead_core)
