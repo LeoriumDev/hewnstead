@@ -38,6 +38,7 @@ Mesh::Mesh(std::span<const float> vertices, int floatsPerVertex) {
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    GL_CHECK();
 }
 
 Mesh::~Mesh() {

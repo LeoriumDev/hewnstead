@@ -7,6 +7,8 @@ struct GLFWwindow;
 
 namespace hs {
 
+class Input;  // forward declaration
+
 class Window {
 public:
     Window(int width, int height, std::string_view title);
@@ -22,6 +24,9 @@ public:
     [[nodiscard]] bool shouldClose() const;
     void swapBuffers();
     void pollEvents();
+    void toggleFullscreen();
+    void requestClose();
+    void attachInput(Input* input);
 
     // Framebuffer (pixels)
     [[nodiscard]] int framebufferWidth() const { return m_fbWidth; }
@@ -35,11 +40,20 @@ public:
 
 private:
     GLFWwindow* m_window = nullptr;
+    Input* m_input = nullptr;
     int m_fbWidth = 0;
     int m_fbHeight = 0;
+    int m_windowedX = 100;
+    int m_windowedY = 100;
+    int m_windowedWidth = 1280;
+    int m_windowedHeight = 720;
+    bool m_fullscreen = false;
 
     // GLFW callback: forwards to the Window* stored as user pointer.
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void focusCallback(GLFWwindow* window, int focused);
 };
 
 }  // namespace hs

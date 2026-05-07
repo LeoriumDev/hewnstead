@@ -52,11 +52,14 @@ add_library(hewnstead_core STATIC
     src/window.cpp
     src/shader.cpp
     src/mesh.cpp
+    src/input.cpp
+    src/camera.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_compile_features(hewnstead_core PUBLIC cxx_std_20)
+target_compile_definitions(hewnstead_core PUBLIC GLFW_INCLUDE_NONE)
 target_link_libraries(hewnstead_core
     PUBLIC glm::glm spdlog::spdlog glfw glad
 )
@@ -65,6 +68,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(hewnstead_core PRIVATE
         -Wall
         -Wextra
+        -Werror
         -Wpedantic
         -Wshadow
         -Wnon-virtual-dtor

@@ -2,6 +2,7 @@
 
 #include <glm/mat4x4.hpp>
 
+#include <string>
 #include <string_view>
 
 namespace hs {

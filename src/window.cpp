@@ -1,4 +1,5 @@
 #include <hewnstead/glcheck.hpp>
+#include <hewnstead/input.hpp>
 #include <hewnstead/window.hpp>
 
 #include <glad/gl.h>
@@ -50,6 +51,7 @@ Window::Window(int width, int height, std::string_view title) {
         throw std::runtime_error("glfwCreateWindow failed (see GLFW error above)");
     }
 
+    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwMakeContextCurrent(m_window);
 
     int version = gladLoadGL(glfwGetProcAddress);
@@ -91,4 +93,47 @@ void Window::swapBuffers() {
 void Window::pollEvents() {
     glfwPollEvents();
 }
+
+void Window::toggleFullscreen() {
+    if (!m_fullscreen) {
+        glfwGetWindowPos(m_window, &m_windowedX, &m_windowedY);
+        glfwGetWindowSize(m_window, &m_windowedWidth, &m_windowedHeight);
+
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        glfwSetWindowMonitor(m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        m_fullscreen = true;
+    } else {
+        glfwSetWindowMonitor(
+            m_window, nullptr, m_windowedX, m_windowedY, m_windowedWidth, m_windowedHeight, 0);
+        m_fullscreen = false;
+    }
+}
+
+void Window::requestClose() {
+    glfwSetWindowShouldClose(m_window, GLFW_TRUE);
+}
+
+void Window::attachInput(Input* input) {
+    m_input = input;
+    glfwSetKeyCallback(m_window, keyCallback);
+    glfwSetWindowFocusCallback(m_window, focusCallback);
+}
+
+void Window::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
+    auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (self == nullptr || self->m_input == nullptr)
+        return;
+    self->m_input->onKeyEvent(key, action);
+}
+
+void Window::focusCallback(GLFWwindow* window, int focused) {
+    auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (self == nullptr || self->m_input == nullptr)
+        return;
+    if (focused == 0) {
+        self->m_input->clearKeys();
+    }
+}
+
 }  // namespace hs
