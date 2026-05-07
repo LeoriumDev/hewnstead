@@ -59,10 +59,13 @@ Mesh Mesh::triangle() {
     constexpr std::array verts = {
         -0.5f,
         -0.5f,
+        0.0f,
         0.5f,
         -0.5f,
         0.0f,
+        0.0f,
         0.5f,
+        0.0f,
     };
     return Mesh{std::span<const float>(verts)};
 }

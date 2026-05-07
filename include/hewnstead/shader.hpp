@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/mat4x4.hpp>
+
 #include <string_view>
 
 namespace hs {
@@ -15,6 +17,8 @@ public:
     Shader& operator=(Shader&&) = delete;
 
     void use() const;
+
+    void setMat4(const std::string& name, const glm::mat4& value) const;
 
     [[nodiscard]] unsigned int id() const { return m_program; }
 

@@ -3,6 +3,7 @@
 
 #include <glad/gl.h>
 
+#include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 
 #include <fstream>
@@ -113,6 +114,15 @@ Shader::~Shader() {
 
 void Shader::use() const {
     glUseProgram(m_program);
+}
+
+void Shader::setMat4(const std::string& name, const glm::mat4& value) const {
+    GLint location = glGetUniformLocation(m_program, name.c_str());
+    if (location < 0) {
+        spdlog::warn("Uniform '{}' not found in program {}", name, m_program);
+        return;
+    }
+    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
 }  // namespace hs

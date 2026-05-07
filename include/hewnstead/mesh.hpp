@@ -6,7 +6,7 @@ namespace hs {
 
 class Mesh {
 public:
-    explicit Mesh(std::span<const float> vertices, int floatsPerVertex = 2);
+    explicit Mesh(std::span<const float> vertices, int floatsPerVertex = 3);
     ~Mesh();
 
     Mesh(const Mesh&) = delete;
