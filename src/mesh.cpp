@@ -58,15 +58,15 @@ void Mesh::draw() const {
 
 Mesh Mesh::triangle() {
     constexpr std::array verts = {
-        -0.5f,
-        -0.5f,
-        0.0f,
-        0.5f,
-        -0.5f,
-        0.0f,
-        0.0f,
-        0.5f,
-        0.0f,
+        -0.5F,
+        -0.5F,
+        0.0F,
+        0.5F,
+        -0.5F,
+        0.0F,
+        0.0F,
+        0.5F,
+        0.0F,
     };
     return Mesh{std::span<const float>(verts)};
 }

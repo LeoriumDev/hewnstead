@@ -58,7 +58,7 @@ Window::Window(int width, int height, std::string_view title) {
     if (version == 0) {
         glfwDestroyWindow(m_window);
         glfwTerminate();
-        throw std::runtime_error("gladloadGL failed");
+        throw std::runtime_error("gladLoadGL failed");
     }
 
     spdlog::info("GL_VERSION: {}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
@@ -122,15 +122,17 @@ void Window::attachInput(Input* input) {
 
 void Window::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
     auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if (self == nullptr || self->m_input == nullptr)
+    if (self == nullptr || self->m_input == nullptr) {
         return;
+    }
     self->m_input->onKeyEvent(key, action);
 }
 
 void Window::focusCallback(GLFWwindow* window, int focused) {
     auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if (self == nullptr || self->m_input == nullptr)
+    if (self == nullptr || self->m_input == nullptr) {
         return;
+    }
     if (focused == 0) {
         self->m_input->clearKeys();
     }

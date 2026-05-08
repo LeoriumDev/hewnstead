@@ -7,6 +7,15 @@ struct GLFWwindow;
 
 namespace hs {
 
+namespace {
+
+// Window
+constexpr int WINDOW_WIDTH = 1280;
+constexpr int WINDOW_HEIGHT = 720;
+constexpr int WINDOWED_X = 100;
+constexpr int WINDOWED_Y = 100;
+}  // namespace
+
 class Input;  // forward declaration
 
 class Window {
@@ -43,10 +52,10 @@ private:
     Input* m_input = nullptr;
     int m_fbWidth = 0;
     int m_fbHeight = 0;
-    int m_windowedX = 100;
-    int m_windowedY = 100;
-    int m_windowedWidth = 1280;
-    int m_windowedHeight = 720;
+    int m_windowedX = WINDOWED_X;
+    int m_windowedY = WINDOWED_Y;
+    int m_windowedWidth = WINDOW_WIDTH;
+    int m_windowedHeight = WINDOW_HEIGHT;
     bool m_fullscreen = false;
 
     // GLFW callback: forwards to the Window* stored as user pointer.

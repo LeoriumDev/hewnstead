@@ -44,6 +44,13 @@ CPMAddPackage(
     GIT_TAG v1.17.0
 )
 
+CPMAddPackage(
+    NAME doctest
+    GITHUB_REPOSITORY doctest/doctest
+    VERSION 2.5.2
+)
+
+
 add_library(glad STATIC third_party/glad/src/gl.c)
 target_include_directories(glad PUBLIC third_party/glad/include)
 
@@ -54,6 +61,8 @@ add_library(hewnstead_core STATIC
     src/mesh.cpp
     src/input.cpp
     src/camera.cpp
+    src/chunk.cpp
+    src/chunk_manager.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -80,3 +89,7 @@ endif()
 add_executable(hewnstead src/main.cpp)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(hewnstead PRIVATE hewnstead_core)
+
+# tests subdirectory
+enable_testing()
+add_subdirectory(tests)
