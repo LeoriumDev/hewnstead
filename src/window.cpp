@@ -51,7 +51,7 @@ Window::Window(int width, int height, std::string_view title) {
         throw std::runtime_error("glfwCreateWindow failed (see GLFW error above)");
     }
 
-    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    setCursorMode(false);
     glfwMakeContextCurrent(m_window);
 
     int version = gladLoadGL(glfwGetProcAddress);
@@ -89,6 +89,8 @@ void Window::swapBuffers() {
     glfwSwapBuffers(m_window);
 }
 
+// pollEvents calls a free function but stays an instance method to keep
+// Window's API surface coherent — callers always use `window.method()`.
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void Window::pollEvents() {
     glfwPollEvents();
@@ -136,6 +138,10 @@ void Window::focusCallback(GLFWwindow* window, int focused) {
     if (focused == 0) {
         self->m_input->clearKeys();
     }
+}
+
+void Window::setCursorMode(bool visible) {
+    glfwSetInputMode(m_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
 
 }  // namespace hs

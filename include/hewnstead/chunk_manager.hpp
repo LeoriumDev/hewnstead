@@ -3,7 +3,6 @@
 #include <hewnstead/chunk.hpp>
 #include <hewnstead/chunk_coord.hpp>
 
-#include <glm/ext/vector_int3.hpp>
 #include <glm/vec3.hpp>
 
 #include <cstddef>

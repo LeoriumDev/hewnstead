@@ -14,14 +14,11 @@ constexpr float SPEED = 10.0F;               // m/s
 constexpr float MOUSE_SENSITIVITY = 0.002F;  // rad/pixel
 const float PITCH_LIMIT = glm::radians(89.0F);
 
-constexpr float INITIAL_Z = 3.0F;
 constexpr float MOVEMENT_EPSILON = 0.0001F;
 
 constexpr glm::vec3 WORLD_UP{0.0F, 1.0F, 0.0F};
 
 }  // namespace
-
-Camera::Camera() : m_position(0.0F, 0.0F, INITIAL_Z), m_yaw(0.0F), m_pitch(0.0F) {}
 
 glm::vec3 Camera::forward() const {
     float cp = std::cos(m_pitch);
@@ -47,6 +44,10 @@ glm::mat4 Camera::viewMatrix() const {
 }
 
 void Camera::update(const Input& input, float dt) {
+    if (input.imguiWantsKeyboard()) {
+        return;
+    }
+
     // Mouse look
     m_yaw += static_cast<float>(input.mouseDx()) * MOUSE_SENSITIVITY;
     m_pitch -= static_cast<float>(input.mouseDy()) * MOUSE_SENSITIVITY;

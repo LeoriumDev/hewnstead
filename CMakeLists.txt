@@ -50,6 +50,35 @@ CPMAddPackage(
     VERSION 2.5.2
 )
 
+CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY ocornut/imgui
+    GIT_TAG v1.92.7
+    DOWNLOAD_ONLY YES
+)
+if(imgui_ADDED)
+    add_library(hewnstead_imgui STATIC
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    )
+    target_include_directories(hewnstead_imgui SYSTEM PUBLIC
+        ${imgui_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}/backends
+    )
+    target_link_libraries(hewnstead_imgui PUBLIC glfw)
+    if(APPLE)
+        target_compile_definitions(hewnstead_imgui PRIVATE
+            GL_SILENCE_DEPRECATION)
+    endif()
+    target_compile_options(hewnstead_imgui PRIVATE
+        -Wno-conversion -Wno-sign-conversion -Wno-shadow
+        -Wno-pedantic -Wno-old-style-cast)
+endif()
 
 add_library(glad STATIC third_party/glad/src/gl.c)
 target_include_directories(glad PUBLIC third_party/glad/include)
@@ -63,6 +92,7 @@ add_library(hewnstead_core STATIC
     src/camera.cpp
     src/chunk.cpp
     src/chunk_manager.cpp
+    src/imgui_runtime.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -70,7 +100,7 @@ target_include_directories(hewnstead_core PUBLIC
 target_compile_features(hewnstead_core PUBLIC cxx_std_20)
 target_compile_definitions(hewnstead_core PUBLIC GLFW_INCLUDE_NONE)
 target_link_libraries(hewnstead_core
-    PUBLIC glm::glm spdlog::spdlog glfw glad
+    PUBLIC glm::glm spdlog::spdlog glfw glad hewnstead_imgui
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

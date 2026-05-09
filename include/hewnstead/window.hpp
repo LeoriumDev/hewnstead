@@ -7,14 +7,14 @@ struct GLFWwindow;
 
 namespace hs {
 
-namespace {
+// namespace {
 
-// Window
-constexpr int WINDOW_WIDTH = 1280;
-constexpr int WINDOW_HEIGHT = 720;
-constexpr int WINDOWED_X = 100;
-constexpr int WINDOWED_Y = 100;
-}  // namespace
+// // Window
+// constexpr int WINDOW_WIDTH = 1280;
+// constexpr int WINDOW_HEIGHT = 720;
+// constexpr int WINDOWED_X = 100;
+// constexpr int WINDOWED_Y = 100;
+// }  // namespace
 
 class Input;  // forward declaration
 
@@ -36,6 +36,7 @@ public:
     void toggleFullscreen();
     void requestClose();
     void attachInput(Input* input);
+    void setCursorMode(bool visible);
 
     // Framebuffer (pixels)
     [[nodiscard]] int framebufferWidth() const { return m_fbWidth; }
@@ -52,10 +53,10 @@ private:
     Input* m_input = nullptr;
     int m_fbWidth = 0;
     int m_fbHeight = 0;
-    int m_windowedX = WINDOWED_X;
-    int m_windowedY = WINDOWED_Y;
-    int m_windowedWidth = WINDOW_WIDTH;
-    int m_windowedHeight = WINDOW_HEIGHT;
+    int m_windowedX = 0;
+    int m_windowedY = 0;
+    int m_windowedWidth = 0;
+    int m_windowedHeight = 0;
     bool m_fullscreen = false;
 
     // GLFW callback: forwards to the Window* stored as user pointer.

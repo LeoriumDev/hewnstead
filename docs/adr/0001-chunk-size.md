@@ -3,6 +3,7 @@
 ## Status
 
 **Accepted** — 2026-05-01
+**Updated** — 2026-05-10: Decision section corrected.
 
 ## Context
 
@@ -21,22 +22,34 @@ The primary development hardware is Apple Silicon M3 Max. P-core L1 D-cache is 1
 
 **Chunks are 32 × 32 × 32 blocks. Block IDs are `uint16`. One chunk's block array is therefore 64 KB.**
 
-This stores in `std::array<uint16_t, 32*32*32>` (or equivalent flat allocation), with index computed as `(y << 10) | (z << 5) | x`.
+This stores in `std::array<uint16_t, 32*32*32>` (or equivalent flat allocation), 
+with index computed as `z * 32 * 32 + y * 32 + x` (equivalently `(z << 10) | (y << 5) | x`).
 
-Y-major layout chosen because:
+Z-major / X-innermost layout chosen because:
 
-1. Mesher inner loop is over x (`for x = 0 to 31`); x must be the fastest-varying dimension for cache locality. `(y << 10) | (z << 5) | x` achieves this.
-2. Vertical column iteration (flood-fill lighting) accesses a chunk's blocks across full y-range; chunk-internal cache pattern is acceptable (1024-stride within a 64 KB chunk still fits L1).
-3. Same-y "floor" of blocks is contiguous in memory, useful for operations like rendering a single layer or applying y-bounded edits.
+1. **Mesher inner loop is over x.** The standard mesher pattern iterates 
+   `for z { for y { for x { emit(...) } } }`. Inner-loop x must be the 
+   fastest-varying dimension for cache locality. `z*1024 + y*32 + x` makes 
+   x stride = 1, so consecutive x reads hit the same cache line (32 BlockIds 
+   = 64 bytes = exactly one cache line on M3 Max).
+
+2. **Per-y-layer is contiguous.** A fixed (y, z) and varying x gives 
+   contiguous memory — useful for any operation that processes blocks 
+   row-by-row at a fixed altitude.
+
+3. **Vertical column traversal stays in L1.** Fixed (x, z) and varying y 
+   strides 32 bytes per iteration — 32 strides × 32 bytes = 1024 bytes 
+   crossed for a full vertical column. Well within L1 (128 KB on M3 Max), 
+   so flood-fill lighting (Stage 9) doesn't thrash even though y isn't 
+   contiguous.
 
 ```text
 Index 0       (x=0,  y=0,  z=0)   ← chunk start
+Index 1       (x=1,  y=0,  z=0)   ← x+1 jumps 1
 Index 31      (x=31, y=0,  z=0)
-Index 32      (x=0,  y=0,  z=1)   ← z+1 jumps 32
-...
-Index 1023    (x=31, y=0,  z=31)
-Index 1024    (x=0,  y=1,  z=0)   ← y+1 jumps 1024
-...
+Index 32      (x=0,  y=1,  z=0)   ← y+1 jumps 32
+Index 1023    (x=31, y=31, z=0)
+Index 1024    (x=0,  y=0,  z=1)   ← z+1 jumps 1024
 Index 32767   (x=31, y=31, z=31)  ← chunk end (64 KB total)
 ```
 

@@ -1,4 +1,4 @@
-#include "hewnstead/glcheck.hpp"
+#include <hewnstead/glcheck.hpp>
 
 #include <glad/gl.h>
 

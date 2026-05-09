@@ -1,4 +1,5 @@
 #include <hewnstead/camera.hpp>
+#include <hewnstead/imgui_runtime.hpp>
 #include <hewnstead/input.hpp>
 #include <hewnstead/mesh.hpp>
 #include <hewnstead/shader.hpp>
@@ -12,6 +13,7 @@
 
 #include <cstdlib>
 #include <exception>
+#include <imgui.h>
 
 namespace {
 
@@ -33,6 +35,9 @@ constexpr float FOV_DEGREES = 60.0F;
 constexpr float NEAR_PLANE = 0.1F;
 constexpr float FAR_PLANE = 1000.0F;
 
+// Misc
+constexpr double WINDOW_HALF = 0.5;
+
 }  // namespace
 int main() {
     try {
@@ -47,10 +52,16 @@ int main() {
 
         window.attachInput(&input);
 
+        // Order is load-bearing: ImguiRuntime's constructor captures attachInput installed GLFW
+        // callbacks
+        hs::ImguiRuntime runtime(window);
+        input.connectImguiRuntime(&runtime);
+
         glEnable(GL_DEPTH_TEST);
         glClearColor(CLEAR_R, CLEAR_G, CLEAR_B, CLEAR_A);
 
         double lastFrameTime = glfwGetTime();
+        bool overlayVisible = false;
 
         while (!window.shouldClose()) {
             // Time
@@ -68,6 +79,23 @@ int main() {
                 window.requestClose();
             }
 
+            // ~ toggle ImGui overlay for debugging
+            if (input.justPressed(GLFW_KEY_GRAVE_ACCENT)) {
+                overlayVisible = !overlayVisible;
+                window.setCursorMode(overlayVisible);
+
+                if (overlayVisible) {
+                    int w;
+                    int h;
+                    glfwGetWindowSize(window.raw(), &w, &h);
+                    glfwSetCursorPos(window.raw(), w * WINDOW_HALF, h * WINDOW_HALF);
+                }
+
+                input.clearKeys();
+                input.resetMouseBaseline();
+            }
+
+            // F11 fullscreen
             bool fullscreenPressed = input.justPressed(GLFW_KEY_F11);
 #ifdef __APPLE__
             if (input.justPressed(GLFW_KEY_F) && input.isDown(GLFW_KEY_LEFT_CONTROL) &&
@@ -81,7 +109,14 @@ int main() {
 
             camera.update(input, dt);
 
-            // Render
+            // ImGui frame begin
+            runtime.beginFrame();
+
+            if (overlayVisible) {
+                ImGui::ShowDemoWindow();
+            }
+
+            // Scene render
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             auto model = glm::mat4(1.0F);
@@ -93,6 +128,9 @@ int main() {
             shader.setMat4("u_view", view);
             shader.setMat4("u_projection", projection);
             triangle.draw();
+
+            // ImGui frame end
+            runtime.endFrame();
 
             window.swapBuffers();
         }

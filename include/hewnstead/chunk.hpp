@@ -15,8 +15,7 @@ public:
     static constexpr int SIZE = 32;
     static constexpr std::size_t VOLUME = static_cast<std::size_t>(SIZE) * SIZE * SIZE;
 
-    // Value-init the array to zero-fill all blocks to Air (= 0).
-    Chunk() : m_blocks() {}
+    Chunk() = default;
 
     [[nodiscard]] BlockId get(int x, int y, int z) const;
 
@@ -28,7 +27,9 @@ public:
     }
 
 private:
-    std::array<BlockId, VOLUME> m_blocks;
+    // Value-initialized to zero on default construction; zero == Air, so every
+    // new chunk is all-air with no per-cell loop.
+    std::array<BlockId, VOLUME> m_blocks{};
 };
 
 }  // namespace hs
