@@ -1,7 +1,9 @@
 #include <hewnstead/camera.hpp>
+#include <hewnstead/chunk_mesh.hpp>
+#include <hewnstead/chunk_vertex.hpp>
+#include <hewnstead/debug_overlay.hpp>
 #include <hewnstead/imgui_runtime.hpp>
 #include <hewnstead/input.hpp>
-#include <hewnstead/mesh.hpp>
 #include <hewnstead/shader.hpp>
 #include <hewnstead/window.hpp>
 
@@ -11,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
+#include <array>
 #include <cstdlib>
 #include <exception>
 #include <imgui.h>
@@ -38,14 +41,74 @@ constexpr float FAR_PLANE = 1000.0F;
 // Misc
 constexpr double WINDOW_HALF = 0.5;
 
+// Cube colors
+constexpr glm::vec3 COLOR_TOP{1.0F, 0.85F, 0.2F};
+constexpr glm::vec3 COLOR_BOTTOM{0.25F, 0.25F, 0.28F};
+constexpr glm::vec3 COLOR_NORTH{0.85F, 0.2F, 0.2F};
+constexpr glm::vec3 COLOR_SOUTH{0.95F, 0.55F, 0.15F};
+constexpr glm::vec3 COLOR_EAST{0.2F, 0.4F, 0.85F};
+constexpr glm::vec3 COLOR_WEST{0.3F, 0.7F, 0.3F};
+
+// Cube vertices
+constexpr std::array<hs::ChunkVertex, 36> CUBE_VERTICES = {{
+    // East face (+X, blue) — looking from +X toward origin, CCW
+    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_EAST},
+    {.position = {1.0F, 1.0F, 0.0F}, .color = COLOR_EAST},
+    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_EAST},
+    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_EAST},
+    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_EAST},
+    {.position = {1.0F, 0.0F, 1.0F}, .color = COLOR_EAST},
+
+    // West face (-X, green) — looking from -X toward origin, CCW
+    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_WEST},
+    {.position = {0.0F, 1.0F, 1.0F}, .color = COLOR_WEST},
+    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_WEST},
+    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_WEST},
+    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_WEST},
+    {.position = {0.0F, 0.0F, 0.0F}, .color = COLOR_WEST},
+
+    // Top face (+Y, yellow) — looking from +Y down, CCW
+    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_TOP},
+    {.position = {0.0F, 1.0F, 1.0F}, .color = COLOR_TOP},
+    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_TOP},
+    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_TOP},
+    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_TOP},
+    {.position = {1.0F, 1.0F, 0.0F}, .color = COLOR_TOP},
+
+    // Bottom face (-Y, dark grey) — looking from -Y up, CCW
+    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_BOTTOM},
+    {.position = {0.0F, 0.0F, 0.0F}, .color = COLOR_BOTTOM},
+    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_BOTTOM},
+    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_BOTTOM},
+    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_BOTTOM},
+    {.position = {1.0F, 0.0F, 1.0F}, .color = COLOR_BOTTOM},
+
+    // South face (+Z, orange) — looking from +Z toward origin, CCW
+    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_SOUTH},
+    {.position = {1.0F, 0.0F, 1.0F}, .color = COLOR_SOUTH},
+    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_SOUTH},
+    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_SOUTH},
+    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_SOUTH},
+    {.position = {0.0F, 1.0F, 1.0F}, .color = COLOR_SOUTH},
+
+    // North face (-Z, red) — looking from -Z toward origin, CCW
+    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_NORTH},
+    {.position = {0.0F, 0.0F, 0.0F}, .color = COLOR_NORTH},
+    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_NORTH},
+    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_NORTH},
+    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_NORTH},
+    {.position = {1.0F, 1.0F, 0.0F}, .color = COLOR_NORTH},
+}};
+
 }  // namespace
+
 int main() {
     try {
         spdlog::info("Hewnstead starting up...");
 
         hs::Window window(WINDOW_WIDTH, WINDOW_HEIGHT, "Hewnstead");
-        hs::Shader shader("assets/shaders/triangle.vert", "assets/shaders/triangle.frag");
-        hs::Mesh triangle = hs::Mesh::triangle();
+        hs::Shader shader("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
+        hs::ChunkMesh cube((std::span<const hs::ChunkVertex>(CUBE_VERTICES)));
 
         hs::Input input;
         hs::Camera camera;
@@ -95,15 +158,9 @@ int main() {
                 input.resetMouseBaseline();
             }
 
-            // F11 fullscreen
-            bool fullscreenPressed = input.justPressed(GLFW_KEY_F11);
-#ifdef __APPLE__
-            if (input.justPressed(GLFW_KEY_F) && input.isDown(GLFW_KEY_LEFT_CONTROL) &&
-                input.isDown(GLFW_KEY_LEFT_SUPER)) {
-                fullscreenPressed = true;
-            }
-#endif
-            if (fullscreenPressed) {
+            // Alt+Enter fullscreen toggle
+            if (input.justPressed(GLFW_KEY_ENTER) &&
+                (input.isDown(GLFW_KEY_LEFT_ALT) || input.isDown(GLFW_KEY_RIGHT_ALT))) {
                 window.toggleFullscreen();
             }
 
@@ -111,6 +168,8 @@ int main() {
 
             // ImGui frame begin
             runtime.beginFrame();
+
+            hs::drawCameraHud(camera, dt);
 
             if (overlayVisible) {
                 ImGui::ShowDemoWindow();
@@ -127,7 +186,7 @@ int main() {
             shader.setMat4("u_model", model);
             shader.setMat4("u_view", view);
             shader.setMat4("u_projection", projection);
-            triangle.draw();
+            cube.draw();
 
             // ImGui frame end
             runtime.endFrame();

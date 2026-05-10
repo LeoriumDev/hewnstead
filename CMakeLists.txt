@@ -87,12 +87,13 @@ add_library(hewnstead_core STATIC
     src/glcheck.cpp
     src/window.cpp
     src/shader.cpp
-    src/mesh.cpp
     src/input.cpp
     src/camera.cpp
     src/chunk.cpp
     src/chunk_manager.cpp
     src/imgui_runtime.cpp
+    src/chunk_mesh.cpp
+    src/debug_overlay.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include

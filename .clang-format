@@ -39,3 +39,5 @@ IncludeCategories:
 
 BinPackArguments: false
 BinPackParameters: false
+
+InsertNewlineAtEOF: true

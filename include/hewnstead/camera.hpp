@@ -14,7 +14,10 @@ public:
 
     [[nodiscard]] glm::mat4 viewMatrix() const;
 
-    [[nodiscard]] glm::vec3 position() const { return m_position; };
+    [[nodiscard]] float yaw() const { return m_yaw; }      // in radians
+    [[nodiscard]] float pitch() const { return m_pitch; }  // in radians
+    [[nodiscard]] glm::vec3 position() const { return m_position; }
+
     [[nodiscard]] glm::vec3 forward() const;
     [[nodiscard]] glm::vec3 right() const;
     [[nodiscard]] glm::vec3 up() const;

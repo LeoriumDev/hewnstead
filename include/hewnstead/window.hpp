@@ -7,15 +7,6 @@ struct GLFWwindow;
 
 namespace hs {
 
-// namespace {
-
-// // Window
-// constexpr int WINDOW_WIDTH = 1280;
-// constexpr int WINDOW_HEIGHT = 720;
-// constexpr int WINDOWED_X = 100;
-// constexpr int WINDOWED_Y = 100;
-// }  // namespace
-
 class Input;  // forward declaration
 
 class Window {
@@ -63,7 +54,6 @@ private:
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void focusCallback(GLFWwindow* window, int focused);
 };
 
 }  // namespace hs
