@@ -1,6 +1,8 @@
 #include <hewnstead/camera.hpp>
 #include <hewnstead/debug_overlay.hpp>
 
+#include <glad/gl.h>
+
 #include <glm/trigonometric.hpp>
 
 #include <cmath>

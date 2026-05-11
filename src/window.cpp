@@ -8,6 +8,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <array>
 #include <stdexcept>
 
 namespace hs {
@@ -43,6 +44,7 @@ Window::Window(int width, int height, std::string_view title) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_SAMPLES, 4);  // request 4x MSAA framebuffer
 
     std::string titleStr(title);
     m_window = glfwCreateWindow(width, height, titleStr.c_str(), nullptr, nullptr);
@@ -51,7 +53,6 @@ Window::Window(int width, int height, std::string_view title) {
         throw std::runtime_error("glfwCreateWindow failed (see GLFW error above)");
     }
 
-    setCursorMode(false);
     glfwMakeContextCurrent(m_window);
 
     int version = gladLoadGL(glfwGetProcAddress);
@@ -61,11 +62,101 @@ Window::Window(int width, int height, std::string_view title) {
         throw std::runtime_error("gladLoadGL failed");
     }
 
-    spdlog::info("GL_VERSION: {}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-    spdlog::info("GL_RENDERER: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+    auto safeGetString = [](GLenum name) -> const char* {
+        const auto* str = glGetString(name);
+        return (str != nullptr) ? reinterpret_cast<const char*>(str) : "(unknown)";
+    };
+
+    auto logKV = [](const char* key, const auto& value) {
+        spdlog::info("  {:<35} {}", key, value);
+    };
+
+    spdlog::info("");
+    spdlog::info("┌───────────────────────────────────────────────────────┐");
+    spdlog::info("│                      GPU CONTEXT                      │");
+    spdlog::info("└───────────────────────────────────────────────────────┘");
+    logKV("Vendor", safeGetString(GL_VENDOR));
+    logKV("Renderer", safeGetString(GL_RENDERER));
+    logKV("GL Version", safeGetString(GL_VERSION));
+    logKV("GLSL Version", safeGetString(GL_SHADING_LANGUAGE_VERSION));
+
+    GLint major = 0;
+    GLint minor = 0;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+    GLint profileMask = 0;
+    glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profileMask);
+    const char* profileName =
+        ((profileMask & GL_CONTEXT_CORE_PROFILE_BIT) != 0) ? "Core" : "Compatibility";
+    logKV("Context", fmt::format("{}.{} {}", major, minor, profileName));
+
+    spdlog::info("");
+    spdlog::info("┌───────────────────────────────────────────────────────┐");
+    spdlog::info("│                   GPU CAPABILITIES                    │");
+    spdlog::info("└───────────────────────────────────────────────────────┘");
+
+    GLint maxArrayTextureLayers = 0;
+    GLint maxVertexAttribs = 0;
+    GLint maxTextureSize = 0;
+    GLint maxSamples = 0;
+    GLint actualSamples = 0;
+    GLint maxTextureImageUnits = 0;
+    GLint maxVertexUniformComponents = 0;
+    GLint maxFragmentUniformComponents = 0;
+    GLint maxVertexOutputComponents = 0;
+    GLint maxRenderbufferSize = 0;
+    GLint maxElementsVertices = 0;
+    GLint maxElementsIndices = 0;
+    std::array<GLint, 2> viewportDims = {0, 0};
+    std::array<GLfloat, 2> lineWidthRange = {0.0F, 0.0F};
+
+    // Texture array block type cap
+    glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &maxArrayTextureLayers);
+    // Vertex format attribute budget
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxVertexAttribs);
+    // Texture load size limit
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+    // MSAA capability + current sample count
+    glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
+    glGetIntegerv(GL_SAMPLES, &actualSamples);
+    // Simultaneous texture binding limit
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureImageUnits);
+    // Vertex shader uniform budget
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &maxVertexUniformComponents);
+    // Fragment shader uniform budget
+    glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &maxFragmentUniformComponents);
+    // Vertex->fragment float pass budget
+    glGetIntegerv(GL_MAX_VERTEX_OUTPUT_COMPONENTS, &maxVertexOutputComponents);
+    // FBO / shadow map size limit
+    glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &maxRenderbufferSize);
+    // Indexed drawing vertex budget hint
+    glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxElementsVertices);
+    // Indexed drawing index budget hint
+    glGetIntegerv(GL_MAX_ELEMENTS_INDICES, &maxElementsIndices);
+    // 4K/8K monitor support cap
+    glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewportDims.data());
+    // Debug line width range
+    glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange.data());
+
+    logKV("MAX_ARRAY_TEXTURE_LAYERS", maxArrayTextureLayers);
+    logKV("MAX_VERTEX_ATTRIBS", maxVertexAttribs);
+    logKV("MAX_TEXTURE_SIZE", maxTextureSize);
+    logKV("MAX_SAMPLES", fmt::format("{} (actual: {})", maxSamples, actualSamples));
+    logKV("MAX_TEXTURE_IMAGE_UNITS", maxTextureImageUnits);
+    logKV("MAX_VERTEX_UNIFORM_COMPONENTS", maxVertexUniformComponents);
+    logKV("MAX_FRAGMENT_UNIFORM_COMPONENTS", maxFragmentUniformComponents);
+    logKV("MAX_VERTEX_OUTPUT_COMPONENTS", maxVertexOutputComponents);
+    logKV("MAX_RENDERBUFFER_SIZE", maxRenderbufferSize);
+    logKV("MAX_ELEMENTS_VERTICES", maxElementsVertices);
+    logKV("MAX_ELEMENTS_INDICES", maxElementsIndices);
+    logKV("MAX_VIEWPORT_DIMS", fmt::format("{} x {}", viewportDims[0], viewportDims[1]));
+    logKV("ALIASED_LINE_WIDTH_RANGE", fmt::format("{} - {}", lineWidthRange[0], lineWidthRange[1]));
+
+    spdlog::info("");
 
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);
+    setCursorMode(false);
 
     glfwGetFramebufferSize(m_window, &m_fbWidth, &m_fbHeight);
     glViewport(0, 0, m_fbWidth, m_fbHeight);

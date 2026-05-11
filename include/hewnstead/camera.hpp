@@ -25,9 +25,11 @@ public:
 private:
     [[nodiscard]] glm::vec3 horizontalForward() const;
 
-    static constexpr float INITIAL_Z = 3.0F;
+    static constexpr float INITIAL_X = 16.0F;
+    static constexpr float INITIAL_Y = 16.0F;
+    static constexpr float INITIAL_Z = 50.0F;
 
-    glm::vec3 m_position{0.0F, 0.0F, INITIAL_Z};
+    glm::vec3 m_position{INITIAL_X, INITIAL_Y, INITIAL_Z};
     float m_yaw{0.0F};    // in radians
     float m_pitch{0.0F};  // in radians
 };

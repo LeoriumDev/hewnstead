@@ -1,10 +1,12 @@
 #include <hewnstead/camera.hpp>
 #include <hewnstead/chunk_mesh.hpp>
 #include <hewnstead/chunk_vertex.hpp>
+#include <hewnstead/config.hpp>
 #include <hewnstead/debug_overlay.hpp>
 #include <hewnstead/imgui_runtime.hpp>
 #include <hewnstead/input.hpp>
 #include <hewnstead/shader.hpp>
+#include <hewnstead/splash.hpp>
 #include <hewnstead/window.hpp>
 
 #include <glad/gl.h>
@@ -19,27 +21,6 @@
 #include <imgui.h>
 
 namespace {
-
-// Window
-constexpr int WINDOW_WIDTH = 1280;
-constexpr int WINDOW_HEIGHT = 720;
-
-// Clear color (dark blue-grey)
-constexpr float CLEAR_R = 0.10F;
-constexpr float CLEAR_G = 0.10F;
-constexpr float CLEAR_B = 0.12F;
-constexpr float CLEAR_A = 1.00F;
-
-// Frame timing
-constexpr float DT_CAP = 0.1F;
-
-// Camera projection
-constexpr float FOV_DEGREES = 60.0F;
-constexpr float NEAR_PLANE = 0.1F;
-constexpr float FAR_PLANE = 1000.0F;
-
-// Misc
-constexpr double WINDOW_HALF = 0.5;
 
 // Cube colors
 constexpr glm::vec3 COLOR_TOP{1.0F, 0.85F, 0.2F};
@@ -100,99 +81,159 @@ constexpr std::array<hs::ChunkVertex, 36> CUBE_VERTICES = {{
     {.position = {1.0F, 1.0F, 0.0F}, .color = COLOR_NORTH},
 }};
 
+void setupGlState() {
+    // Enable depth test (nearest wins)
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    // Enable back-face culling (front-facing face is CCW from camera view)
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+
+    glClearColor(
+        hs::config::CLEAR_R, hs::config::CLEAR_G, hs::config::CLEAR_B, hs::config::CLEAR_A);
+
+    // Enable MSAA in rasterization
+    glEnable(GL_MULTISAMPLE);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void handleSpecialKeys(hs::Input& input, hs::Window& window, bool& overlayVisible) {
+    if (input.justPressed(GLFW_KEY_ESCAPE)) {
+        window.requestClose();
+    }
+
+    if (input.justPressed(GLFW_KEY_F3)) {
+        overlayVisible = !overlayVisible;
+        window.setCursorMode(overlayVisible);
+
+        if (overlayVisible) {
+            int w = 0;
+            int h = 0;
+            glfwGetWindowSize(window.raw(), &w, &h);
+            constexpr double CENTER = 0.5;
+            glfwSetCursorPos(window.raw(), w * CENTER, h * CENTER);
+        }
+
+        input.clearKeys();
+        input.resetMouseBaseline();
+    }
+
+    if (input.justPressed(GLFW_KEY_ENTER) &&
+        (input.isDown(GLFW_KEY_LEFT_ALT) || input.isDown(GLFW_KEY_RIGHT_ALT))) {
+        window.toggleFullscreen();
+    }
+}
+
+void drawDebugUi(const hs::ChunkMesh& mesh,
+                 GLuint64 samplesPassed,
+                 GLint actualSamples,
+                 bool& wireframe) {
+    ImGui::Begin("Debug");
+    ImGui::Text("Vertices: %d", mesh.vertexCount());
+    ImGui::Text("Triangles: %d", mesh.vertexCount() / 3);
+    ImGui::Text("Samples: %llu (~%llu px @ MSAA %dx)",
+                samplesPassed,
+                samplesPassed / actualSamples,
+                actualSamples);
+    ImGui::Checkbox("Wireframe", &wireframe);
+    ImGui::End();
+}
+
+void renderScene(const hs::Shader& shader,
+                 const hs::ChunkMesh& mesh,
+                 const hs::Camera& camera,
+                 float aspect,
+                 bool wireframe) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
+
+    auto model = glm::mat4(1.0F);
+    glm::mat4 view = camera.viewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(hs::config::FOV_DEGREES),
+                                            aspect,
+                                            hs::config::NEAR_PLANE,
+                                            hs::config::FAR_PLANE);
+
+    shader.use();
+    shader.setMat4("u_model", model);
+    shader.setMat4("u_view", view);
+    shader.setMat4("u_projection", projection);
+
+    mesh.draw();
+}
+
 }  // namespace
 
 int main() {
     try {
-        spdlog::info("Hewnstead starting up...");
+        hs::printSplash();
 
-        hs::Window window(WINDOW_WIDTH, WINDOW_HEIGHT, "Hewnstead");
+        hs::Window window(hs::config::WINDOW_WIDTH, hs::config::WINDOW_HEIGHT, "Hewnstead");
         hs::Shader shader("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
         hs::ChunkMesh cube((std::span<const hs::ChunkVertex>(CUBE_VERTICES)));
 
         hs::Input input;
         hs::Camera camera;
-
         window.attachInput(&input);
 
-        // Order is load-bearing: ImguiRuntime's constructor captures attachInput installed GLFW
-        // callbacks
         hs::ImguiRuntime runtime(window);
         input.connectImguiRuntime(&runtime);
 
-        glEnable(GL_DEPTH_TEST);
-        glClearColor(CLEAR_R, CLEAR_G, CLEAR_B, CLEAR_A);
+        setupGlState();
 
+        // Sample query
+        GLuint sampleQuery = 0;
+        glGenQueries(1, &sampleQuery);
+        GLuint64 samplesPassed = 0;
+
+        GLint actualSamples = 0;
+        glGetIntegerv(GL_SAMPLES, &actualSamples);
+        if (actualSamples == 0) {
+            actualSamples = 1;
+        }
+
+        // Loop state
         double lastFrameTime = glfwGetTime();
         bool overlayVisible = false;
+        bool wireframe = false;
 
         while (!window.shouldClose()) {
-            // Time
+            // ─── Frame timing ───
             double now = glfwGetTime();
             auto dt = static_cast<float>(now - lastFrameTime);
-            dt = std::min(dt, DT_CAP);
+            dt = std::min(dt, hs::config::DT_CAP);
             lastFrameTime = now;
 
-            // Input
+            // ─── Input ───
             input.update(window.raw());
-
             window.pollEvents();
+            handleSpecialKeys(input, window, overlayVisible);
 
-            if (input.justPressed(GLFW_KEY_ESCAPE)) {
-                window.requestClose();
-            }
-
-            // ~ toggle ImGui overlay for debugging
-            if (input.justPressed(GLFW_KEY_GRAVE_ACCENT)) {
-                overlayVisible = !overlayVisible;
-                window.setCursorMode(overlayVisible);
-
-                if (overlayVisible) {
-                    int w;
-                    int h;
-                    glfwGetWindowSize(window.raw(), &w, &h);
-                    glfwSetCursorPos(window.raw(), w * WINDOW_HALF, h * WINDOW_HALF);
-                }
-
-                input.clearKeys();
-                input.resetMouseBaseline();
-            }
-
-            // Alt+Enter fullscreen toggle
-            if (input.justPressed(GLFW_KEY_ENTER) &&
-                (input.isDown(GLFW_KEY_LEFT_ALT) || input.isDown(GLFW_KEY_RIGHT_ALT))) {
-                window.toggleFullscreen();
-            }
-
+            // ─── Simulation ───
             camera.update(input, dt);
 
-            // ImGui frame begin
+            // ─── UI ───
             runtime.beginFrame();
-
             hs::drawCameraHud(camera, dt);
-
             if (overlayVisible) {
-                ImGui::ShowDemoWindow();
+                drawDebugUi(cube, samplesPassed, actualSamples, wireframe);
             }
 
-            // Scene render
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            auto model = glm::mat4(1.0F);
-            glm::mat4 view = camera.viewMatrix();
-            glm::mat4 projection =
-                glm::perspective(glm::radians(FOV_DEGREES), window.aspect(), NEAR_PLANE, FAR_PLANE);
-            shader.use();
-            shader.setMat4("u_model", model);
-            shader.setMat4("u_view", view);
-            shader.setMat4("u_projection", projection);
-            cube.draw();
-
-            // ImGui frame end
+            // ─── Render ───
+            glBeginQuery(GL_SAMPLES_PASSED, sampleQuery);
+            renderScene(shader, cube, camera, window.aspect(), wireframe);
+            glEndQuery(GL_SAMPLES_PASSED);
+            glGetQueryObjectui64v(sampleQuery, GL_QUERY_RESULT, &samplesPassed);
             runtime.endFrame();
 
+            // ─── Present ───
             window.swapBuffers();
         }
+
+        glDeleteQueries(1, &sampleQuery);
     } catch (const std::exception& e) {
         spdlog::critical("Fatal: {}", e.what());
         return EXIT_FAILURE;
