@@ -8,15 +8,16 @@ namespace hs {
 
 class ChunkMesh {
 public:
-    explicit ChunkMesh(std::span<const ChunkVertex> vertices);
+    ChunkMesh();
     ~ChunkMesh();
 
     ChunkMesh(const ChunkMesh&) = delete;
     ChunkMesh& operator=(const ChunkMesh&) = delete;
-    ChunkMesh(ChunkMesh&&) = delete;
-    ChunkMesh& operator=(ChunkMesh&&) = delete;
+    ChunkMesh(ChunkMesh&&) noexcept;
+    ChunkMesh& operator=(ChunkMesh&&) noexcept;
 
     void draw() const;
+    void upload(std::span<const ChunkVertex> vertices);
 
     [[nodiscard]] int vertexCount() const { return m_vertexCount; }
 

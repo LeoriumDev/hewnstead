@@ -1,3 +1,5 @@
+#include "hewnstead/chunk_manager.hpp"
+#include "hewnstead/mesher.hpp"
 #include <hewnstead/camera.hpp>
 #include <hewnstead/chunk_mesh.hpp>
 #include <hewnstead/chunk_vertex.hpp>
@@ -15,71 +17,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
-#include <array>
 #include <cstdlib>
 #include <exception>
 #include <imgui.h>
 
 namespace {
-
-// Cube colors
-constexpr glm::vec3 COLOR_TOP{1.0F, 0.85F, 0.2F};
-constexpr glm::vec3 COLOR_BOTTOM{0.25F, 0.25F, 0.28F};
-constexpr glm::vec3 COLOR_NORTH{0.85F, 0.2F, 0.2F};
-constexpr glm::vec3 COLOR_SOUTH{0.95F, 0.55F, 0.15F};
-constexpr glm::vec3 COLOR_EAST{0.2F, 0.4F, 0.85F};
-constexpr glm::vec3 COLOR_WEST{0.3F, 0.7F, 0.3F};
-
-// Cube vertices
-constexpr std::array<hs::ChunkVertex, 36> CUBE_VERTICES = {{
-    // East face (+X, blue) — looking from +X toward origin, CCW
-    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_EAST},
-    {.position = {1.0F, 1.0F, 0.0F}, .color = COLOR_EAST},
-    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_EAST},
-    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_EAST},
-    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_EAST},
-    {.position = {1.0F, 0.0F, 1.0F}, .color = COLOR_EAST},
-
-    // West face (-X, green) — looking from -X toward origin, CCW
-    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_WEST},
-    {.position = {0.0F, 1.0F, 1.0F}, .color = COLOR_WEST},
-    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_WEST},
-    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_WEST},
-    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_WEST},
-    {.position = {0.0F, 0.0F, 0.0F}, .color = COLOR_WEST},
-
-    // Top face (+Y, yellow) — looking from +Y down, CCW
-    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_TOP},
-    {.position = {0.0F, 1.0F, 1.0F}, .color = COLOR_TOP},
-    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_TOP},
-    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_TOP},
-    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_TOP},
-    {.position = {1.0F, 1.0F, 0.0F}, .color = COLOR_TOP},
-
-    // Bottom face (-Y, dark grey) — looking from -Y up, CCW
-    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_BOTTOM},
-    {.position = {0.0F, 0.0F, 0.0F}, .color = COLOR_BOTTOM},
-    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_BOTTOM},
-    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_BOTTOM},
-    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_BOTTOM},
-    {.position = {1.0F, 0.0F, 1.0F}, .color = COLOR_BOTTOM},
-
-    // South face (+Z, orange) — looking from +Z toward origin, CCW
-    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_SOUTH},
-    {.position = {1.0F, 0.0F, 1.0F}, .color = COLOR_SOUTH},
-    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_SOUTH},
-    {.position = {0.0F, 0.0F, 1.0F}, .color = COLOR_SOUTH},
-    {.position = {1.0F, 1.0F, 1.0F}, .color = COLOR_SOUTH},
-    {.position = {0.0F, 1.0F, 1.0F}, .color = COLOR_SOUTH},
-
-    // North face (-Z, red) — looking from -Z toward origin, CCW
-    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_NORTH},
-    {.position = {0.0F, 0.0F, 0.0F}, .color = COLOR_NORTH},
-    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_NORTH},
-    {.position = {1.0F, 0.0F, 0.0F}, .color = COLOR_NORTH},
-    {.position = {0.0F, 1.0F, 0.0F}, .color = COLOR_NORTH},
-    {.position = {1.0F, 1.0F, 0.0F}, .color = COLOR_NORTH},
-}};
 
 void setupGlState() {
     // Enable depth test (nearest wins)
@@ -173,7 +115,24 @@ int main() {
 
         hs::Window window(hs::config::WINDOW_WIDTH, hs::config::WINDOW_HEIGHT, "Hewnstead");
         hs::Shader shader("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
-        hs::ChunkMesh cube((std::span<const hs::ChunkVertex>(CUBE_VERTICES)));
+
+        hs::ChunkManager chunkManager;
+        hs::Chunk* chunk = chunkManager.loadChunk({.x = 0, .y = 0, .z = 0});
+        assert(chunk != nullptr);
+
+        for (int z = 0; z < hs::Chunk::SIZE; z++) {
+            for (int y = 0; y < hs::Chunk::SIZE; y++) {
+                for (int x = 0; x < hs::Chunk::SIZE; x++) {
+                    chunk->set(x, y, z, hs::blocks::Dirt);
+                }
+            }
+        }
+
+        const auto vertices = hs::mesher::buildMesh(*chunk);
+        spdlog::info("Mesher emitted {} vertices for fully-dirt chunk", vertices.size());
+
+        hs::ChunkMesh chunkMesh;
+        chunkMesh.upload(vertices);
 
         hs::Input input;
         hs::Camera camera;
@@ -219,12 +178,12 @@ int main() {
             runtime.beginFrame();
             hs::drawCameraHud(camera, dt);
             if (overlayVisible) {
-                drawDebugUi(cube, samplesPassed, actualSamples, wireframe);
+                drawDebugUi(chunkMesh, samplesPassed, actualSamples, wireframe);
             }
 
             // ─── Render ───
             glBeginQuery(GL_SAMPLES_PASSED, sampleQuery);
-            renderScene(shader, cube, camera, window.aspect(), wireframe);
+            renderScene(shader, chunkMesh, camera, window.aspect(), wireframe);
             glEndQuery(GL_SAMPLES_PASSED);
             glGetQueryObjectui64v(sampleQuery, GL_QUERY_RESULT, &samplesPassed);
             runtime.endFrame();

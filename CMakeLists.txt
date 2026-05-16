@@ -95,6 +95,7 @@ add_library(hewnstead_core STATIC
     src/chunk_mesh.cpp
     src/debug_overlay.cpp
     src/splash.cpp
+    src/mesher.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
