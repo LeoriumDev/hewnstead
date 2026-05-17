@@ -43,8 +43,18 @@ External resources only. Freeform thoughts go in Context or Alternatives.
 
 ## ADR list
 
-| Number | Title | Status |
-| --- | --- | --- |
-| ADR-0001 | Chunk size 32³ | Accepted |
-| ADR-0002 | Texture array over atlas | Accepted |
-| ... | ... | ... |
+| Number   | Title                                                                         | Status   |
+| -------- | ----------------------------------------------------------------------------- | -------- |
+| ADR-0001 | Chunk size = 32³                                                              | Accepted |
+| ADR-0002 | Texture array over texture atlas                                              | Accepted |
+| ADR-0003 | Graphics API = Apple-native OpenGL 4.1 Core                                   | Accepted |
+| ADR-0004 | Server tick rate = 20 TPS                                                     | Accepted |
+| ADR-0005 | Source license = MIT                                                          | Accepted |
+| ADR-0006 | Third-party license management = permissive only, GPL banned                  | Accepted |
+| ADR-0007 | Dependency management = CPM.cmake                                             | Accepted |
+| ADR-0008 | Client-server architecture with optimistic prediction                         | Accepted |
+| ADR-0009 | Entity ownership and prediction scope                                         | Accepted |
+| ADR-0010 | Anti-cheat strategy = design-level mitigation, no kernel anti-cheat           | Accepted |
+| ADR-0011 | Vertex format evolves with engine milestones, not designed forward-compatible | Accepted |
+| ADR-0012 | Mesh class specificity over genericity                                        | Accepted |
+| ...      | ...                                                                           | ...      |
