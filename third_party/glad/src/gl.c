@@ -37,6 +37,7 @@ int GLAD_GL_VERSION_3_2 = 0;
 int GLAD_GL_VERSION_3_3 = 0;
 int GLAD_GL_VERSION_4_0 = 0;
 int GLAD_GL_VERSION_4_1 = 0;
+int GLAD_GL_ARB_texture_storage = 0;
 
 
 
@@ -376,6 +377,9 @@ PFNGLTEXPARAMETERFPROC glad_glTexParameterf = NULL;
 PFNGLTEXPARAMETERFVPROC glad_glTexParameterfv = NULL;
 PFNGLTEXPARAMETERIPROC glad_glTexParameteri = NULL;
 PFNGLTEXPARAMETERIVPROC glad_glTexParameteriv = NULL;
+PFNGLTEXSTORAGE1DPROC glad_glTexStorage1D = NULL;
+PFNGLTEXSTORAGE2DPROC glad_glTexStorage2D = NULL;
+PFNGLTEXSTORAGE3DPROC glad_glTexStorage3D = NULL;
 PFNGLTEXSUBIMAGE1DPROC glad_glTexSubImage1D = NULL;
 PFNGLTEXSUBIMAGE2DPROC glad_glTexSubImage2D = NULL;
 PFNGLTEXSUBIMAGE3DPROC glad_glTexSubImage3D = NULL;
@@ -1043,6 +1047,12 @@ static void glad_gl_load_GL_VERSION_4_1( GLADuserptrloadfunc load, void* userptr
     glad_glViewportIndexedf = (PFNGLVIEWPORTINDEXEDFPROC) load(userptr, "glViewportIndexedf");
     glad_glViewportIndexedfv = (PFNGLVIEWPORTINDEXEDFVPROC) load(userptr, "glViewportIndexedfv");
 }
+static void glad_gl_load_GL_ARB_texture_storage( GLADuserptrloadfunc load, void* userptr) {
+    if(!GLAD_GL_ARB_texture_storage) return;
+    glad_glTexStorage1D = (PFNGLTEXSTORAGE1DPROC) load(userptr, "glTexStorage1D");
+    glad_glTexStorage2D = (PFNGLTEXSTORAGE2DPROC) load(userptr, "glTexStorage2D");
+    glad_glTexStorage3D = (PFNGLTEXSTORAGE3DPROC) load(userptr, "glTexStorage3D");
+}
 
 
 
@@ -1138,7 +1148,7 @@ static int glad_gl_find_extensions_gl(void) {
     char **exts_i = NULL;
     if (!glad_gl_get_extensions(&exts, &exts_i)) return 0;
 
-    GLAD_UNUSED(&glad_gl_has_extension);
+    GLAD_GL_ARB_texture_storage = glad_gl_has_extension(exts, exts_i, "GL_ARB_texture_storage");
 
     glad_gl_free_extensions(exts_i);
 
@@ -1210,6 +1220,7 @@ int gladLoadGLUserPtr( GLADuserptrloadfunc load, void *userptr) {
     glad_gl_load_GL_VERSION_4_1(load, userptr);
 
     if (!glad_gl_find_extensions_gl()) return 0;
+    glad_gl_load_GL_ARB_texture_storage(load, userptr);
 
 
 

@@ -1,5 +1,6 @@
 #include "hewnstead/chunk_manager.hpp"
 #include "hewnstead/mesher.hpp"
+#include "hewnstead/texture_array.hpp"
 #include <hewnstead/camera.hpp>
 #include <hewnstead/chunk_mesh.hpp>
 #include <hewnstead/chunk_vertex.hpp>
@@ -87,6 +88,7 @@ void drawDebugUi(const hs::ChunkMesh& mesh,
 void renderScene(const hs::Shader& shader,
                  const hs::ChunkMesh& mesh,
                  const hs::Camera& camera,
+                 const hs::TextureArray& blockTextures,
                  float aspect,
                  bool wireframe) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -103,7 +105,9 @@ void renderScene(const hs::Shader& shader,
     shader.setMat4("u_model", model);
     shader.setMat4("u_view", view);
     shader.setMat4("u_projection", projection);
+    shader.setInt("u_blockTextures", 0);
 
+    blockTextures.bind(0);
     mesh.draw();
 }
 
@@ -116,6 +120,17 @@ int main() {
         hs::Window window(hs::config::WINDOW_WIDTH, hs::config::WINDOW_HEIGHT, "Hewnstead");
         hs::Shader shader("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
 
+        constexpr std::array<std::string_view, 7> texturePaths = {
+            "assets/textures/blocks/stone.png",       // layer 0
+            "assets/textures/blocks/dirt.png",        // layer 1
+            "assets/textures/blocks/log_side.png",    // layer 2
+            "assets/textures/blocks/log_top.png",     // layer 3
+            "assets/textures/blocks/planks.png",      // layer 4
+            "assets/textures/blocks/grass_top.png",   // layer 5
+            "assets/textures/blocks/grass_side.png",  // layer 6
+        };
+        hs::TextureArray blockTextures(texturePaths);
+
         hs::ChunkManager chunkManager;
         hs::Chunk* chunk = chunkManager.loadChunk({.x = 0, .y = 0, .z = 0});
         assert(chunk != nullptr);
@@ -123,7 +138,10 @@ int main() {
         for (int z = 0; z < hs::Chunk::SIZE; z++) {
             for (int y = 0; y < hs::Chunk::SIZE; y++) {
                 for (int x = 0; x < hs::Chunk::SIZE; x++) {
-                    chunk->set(x, y, z, hs::blocks::Dirt);
+                    chunk->set(x, 0, z, hs::blocks::Log);
+                    chunk->set(x, 5, z, hs::blocks::Dirt);
+                    chunk->set(x, 10, z, hs::blocks::Planks);
+                    chunk->set(x, 15, z, hs::blocks::Grass);
                 }
             }
         }
@@ -183,7 +201,7 @@ int main() {
 
             // ─── Render ───
             glBeginQuery(GL_SAMPLES_PASSED, sampleQuery);
-            renderScene(shader, chunkMesh, camera, window.aspect(), wireframe);
+            renderScene(shader, chunkMesh, camera, blockTextures, window.aspect(), wireframe);
             glEndQuery(GL_SAMPLES_PASSED);
             glGetQueryObjectui64v(sampleQuery, GL_QUERY_RESULT, &samplesPassed);
             runtime.endFrame();

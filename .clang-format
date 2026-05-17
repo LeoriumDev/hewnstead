@@ -32,7 +32,7 @@ IncludeCategories:
     Priority: 2
   - Regex: '^<GLFW/'
     Priority: 3
-  - Regex: '^<(glm|spdlog|entt|FastNoise|Tracy|Jolt|doctest|zstd|sqlite3)'
+  - Regex: '^<(glm|spdlog|stb|entt|FastNoise|Tracy|Jolt|doctest|zstd|sqlite3)'
     Priority: 4
   - Regex: '^<.*>$'
     Priority: 5

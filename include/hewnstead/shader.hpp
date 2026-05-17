@@ -20,6 +20,7 @@ public:
     void use() const;
 
     void setMat4(const std::string& name, const glm::mat4& value) const;
+    void setInt(const std::string& name, int value) const;
 
     [[nodiscard]] unsigned int id() const { return m_program; }
 

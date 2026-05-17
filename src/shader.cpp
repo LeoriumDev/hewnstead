@@ -126,4 +126,15 @@ void Shader::setMat4(const std::string& name, const glm::mat4& value) const {
     GL_CHECK();
 }
 
+void Shader::setInt(const std::string& name, int value) const {
+    GLint location = glGetUniformLocation(m_program, name.c_str());
+
+    if (location == -1) {
+        spdlog::warn("Shader uniform '{}' not found or unused", name);
+    }
+
+    glUniform1i(location, value);
+    GL_CHECK();
+}
+
 }  // namespace hs

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hewnstead/chunk_vertex.hpp>
+#include <hewnstead/face.hpp>
 
 #include <vector>
 
@@ -12,9 +13,7 @@ class Chunk;
 
 namespace hs::mesher {
 
-enum class Face : std::uint8_t { East = 0, West, Top, Bottom, South, North, Count };
-
-constexpr std::size_t FACE_COUNT = static_cast<std::size_t>(Face::Count);
+constexpr std::size_t FACE_COUNT = static_cast<std::size_t>(Face::FACE_COUNT);
 
 [[nodiscard]] std::vector<ChunkVertex> buildMesh(const Chunk& chunk);
 

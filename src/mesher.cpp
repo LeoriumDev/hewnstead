@@ -28,16 +28,6 @@ constexpr std::array<std::array<glm::vec3, 4>, FACE_COUNT> FACE_CORNERS = {{
     {{{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}},
 }};
 
-// Per-face debug colors
-constexpr std::array<glm::vec3, FACE_COUNT> FACE_COLORS = {{
-    {0.20F, 0.40F, 0.85F},  // East = blue
-    {0.30F, 0.70F, 0.30F},  // West = green
-    {1.00F, 0.85F, 0.20F},  // Top = yellow
-    {0.25F, 0.25F, 0.28F},  // Bottom = dark grey
-    {0.95F, 0.55F, 0.15F},  // South = orange
-    {0.85F, 0.20F, 0.20F},  // North = red
-}};
-
 // Per-face neighbor cell offsets
 constexpr std::array<glm::ivec3, FACE_COUNT> FACE_NEIGHBOR_OFFSETS = {{
     {+1, 0, 0},  // East   (+X)
@@ -48,34 +38,51 @@ constexpr std::array<glm::ivec3, FACE_COUNT> FACE_NEIGHBOR_OFFSETS = {{
     {0, 0, -1},  // North  (-Z)
 }};
 
-void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face) {
+// Per-face texture coords (UV per corner, matched to FACE_CORNERS).
+// Side faces (East/West/South/North): up vector = +Y (world up).
+// Top/Bottom faces: up vector = -Z (north).
+constexpr std::array<std::array<glm::vec2, 4>, FACE_COUNT> FACE_UVS = {{
+    {{{1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}, {0.0F, 0.0F}}},  // East   (+X)
+    {{{1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}, {0.0F, 0.0F}}},  // West   (-X)
+    {{{0.0F, 1.0F}, {0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}}},  // Top    (+Y)
+    {{{1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}, {0.0F, 0.0F}}},  // Bottom (-Y)
+    {{{0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}}},  // South  (+Z)
+    {{{0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}}},  // North  (-Z)
+}};
+
+void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face, float layer) {
     const auto idx = static_cast<std::size_t>(face);
     const auto& corners = FACE_CORNERS[idx];
-    const glm::vec3 color = FACE_COLORS[idx];
+    const auto& uv = FACE_UVS[idx];
 
     // Two triangles per quad, share hypotenuse (corner 0 and corner 2).
+    // 1 ─── 2
+    // │   / │
+    // |  /  |
+    // │ /   │
+    // 0 ─── 3
     // Triangle 1: corner 0, 1, 2
-    out.push_back({.position = base + corners[0], .color = color});
-    out.push_back({.position = base + corners[1], .color = color});
-    out.push_back({.position = base + corners[2], .color = color});
+    out.push_back({.position = base + corners[0], .uv = uv[0], .layer = layer});
+    out.push_back({.position = base + corners[1], .uv = uv[1], .layer = layer});
+    out.push_back({.position = base + corners[2], .uv = uv[2], .layer = layer});
     // Triangle 2: corner 0, 2, 3
-    out.push_back({.position = base + corners[0], .color = color});
-    out.push_back({.position = base + corners[2], .color = color});
-    out.push_back({.position = base + corners[3], .color = color});
+    out.push_back({.position = base + corners[0], .uv = uv[0], .layer = layer});
+    out.push_back({.position = base + corners[2], .uv = uv[2], .layer = layer});
+    out.push_back({.position = base + corners[3], .uv = uv[3], .layer = layer});
 }
 
 }  // namespace
 
 std::vector<ChunkVertex> buildMesh(const Chunk& chunk) {
     std::vector<ChunkVertex> vertices;
-    constexpr std::size_t VERTICES_PER_BLOCK =
-        mesher::FACE_COUNT * 6;  // 2 triangles x 3 vertices for each
+    constexpr std::size_t VERTICES_PER_BLOCK = FACE_COUNT * 6;  // 2 triangles x 3 vertices for each
     vertices.reserve(Chunk::VOLUME * VERTICES_PER_BLOCK);
 
-    for (int z = 0; z < Chunk::SIZE; z++) {
+    for (int z = 0; z < Chunk::SIZE; ++z) {
         for (int y = 0; y < Chunk::SIZE; ++y) {
             for (int x = 0; x < Chunk::SIZE; ++x) {
-                if (chunk.get(x, y, z) == blocks::Air) {
+                const BlockId block = chunk.get(x, y, z);
+                if (block == blocks::Air) {
                     continue;
                 }
 
@@ -91,10 +98,13 @@ std::vector<ChunkVertex> buildMesh(const Chunk& chunk) {
                         chunk.getOrAir(x + offset.x, y + offset.y, z + offset.z);
                     // Replace this inline check with isOpaque(neighbor) when transparent blocks is
                     // added (water, glass, leaves)
-                    if (neighbor != hs::blocks::Air) {
+                    if (neighbor != blocks::Air) {
                         continue;  // hidden between two solid blocks; cull
                     }
-                    emitFace(vertices, base, static_cast<Face>(f));
+                    emitFace(vertices,
+                             base,
+                             static_cast<Face>(f),
+                             static_cast<float>(blocks::textureLayer(block, static_cast<Face>(f))));
                 }
             }
         }

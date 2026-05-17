@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hewnstead/face.hpp>
+
 #include <cstdint>
 #include <type_traits>
 
@@ -16,6 +18,11 @@ namespace blocks {
 constexpr BlockId Air = 0;
 constexpr BlockId Stone = 1;
 constexpr BlockId Dirt = 2;
+constexpr BlockId Log = 3;
+constexpr BlockId Planks = 4;
+constexpr BlockId Grass = 5;
+
+[[nodiscard]] std::uint32_t textureLayer(BlockId id, Face face);
 
 }  // namespace blocks
 

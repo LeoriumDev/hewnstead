@@ -1,8 +1,12 @@
 #version 410 core
 
-in vec3 v_color;
-out vec4 FragColor;
+in vec2 v_uv;
+in float v_layer;
+
+uniform sampler2DArray u_blockTextures;
+
+out vec4 frag_color;
 
 void main() {
-    FragColor = vec4(v_color, 1.0);
+    frag_color = texture(u_blockTextures, vec3(v_uv, v_layer));
 }

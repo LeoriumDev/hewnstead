@@ -83,6 +83,19 @@ endif()
 add_library(glad STATIC third_party/glad/src/gl.c)
 target_include_directories(glad PUBLIC third_party/glad/include)
 
+add_library(stb_image STATIC src/stb_image_impl.cpp)
+target_include_directories(stb_image PUBLIC third_party/stb/include)
+# Disable strict warnings for this TU only
+target_compile_options(stb_image PRIVATE
+    -Wno-conversion
+    -Wno-sign-conversion
+    -Wno-shadow
+    -Wno-cast-qual
+    -Wno-cast-align
+    -Wno-unused-but-set-variable
+    -Wno-missing-field-initializers
+)
+
 add_library(hewnstead_core STATIC
     src/glcheck.cpp
     src/window.cpp
@@ -96,6 +109,8 @@ add_library(hewnstead_core STATIC
     src/debug_overlay.cpp
     src/splash.cpp
     src/mesher.cpp
+    src/block_id.cpp
+    src/texture_array.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -103,7 +118,7 @@ target_include_directories(hewnstead_core PUBLIC
 target_compile_features(hewnstead_core PUBLIC cxx_std_20)
 target_compile_definitions(hewnstead_core PUBLIC GLFW_INCLUDE_NONE)
 target_link_libraries(hewnstead_core
-    PUBLIC glm::glm spdlog::spdlog glfw glad hewnstead_imgui
+    PUBLIC glm::glm spdlog::spdlog glfw glad hewnstead_imgui stb_image
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -120,7 +135,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 endif()
 
 add_executable(hewnstead src/main.cpp)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets
+        ${CMAKE_CURRENT_BINARY_DIR}/assets
+    COMMENT "Copying assets to build directory"
+)
+add_dependencies(hewnstead copy_assets)
 target_link_libraries(hewnstead PRIVATE hewnstead_core)
 
 # tests subdirectory

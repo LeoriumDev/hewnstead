@@ -10,7 +10,8 @@ namespace hs {
 namespace {
 
 constexpr GLuint POSITION_ATTRIB = 0;
-constexpr GLuint COLOR_ATTRIB = 1;
+constexpr GLuint UV_ATTRIB = 1;
+constexpr GLuint LAYER_ATTRIB = 2;
 
 }  // namespace
 
@@ -35,14 +36,23 @@ ChunkMesh::ChunkMesh() {
                           reinterpret_cast<void*>(offsetof(ChunkVertex, position)));
     glEnableVertexAttribArray(POSITION_ATTRIB);
 
-    // Attribute 1: color (vec3, offset 12)
-    glVertexAttribPointer(COLOR_ATTRIB,
-                          glm::vec3::length(),
+    // Attribute 1: texture coord (vec2, offset 12)
+    glVertexAttribPointer(UV_ATTRIB,
+                          glm::vec2::length(),
                           GL_FLOAT,
                           GL_FALSE,
                           sizeof(ChunkVertex),
-                          reinterpret_cast<void*>(offsetof(ChunkVertex, color)));
-    glEnableVertexAttribArray(COLOR_ATTRIB);
+                          reinterpret_cast<void*>(offsetof(ChunkVertex, uv)));
+    glEnableVertexAttribArray(UV_ATTRIB);
+
+    // Attribute 2: texture array layer index (float, offset 20)
+    glVertexAttribPointer(LAYER_ATTRIB,
+                          1,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(ChunkVertex),
+                          reinterpret_cast<void*>(offsetof(ChunkVertex, layer)));
+    glEnableVertexAttribArray(LAYER_ATTRIB);
 
     // NOLINTEND(performance-no-int-to-ptr)
 
