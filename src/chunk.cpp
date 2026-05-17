@@ -7,8 +7,8 @@ namespace hs {
 namespace {
 
 std::size_t toIdx(int x, int y, int z) {
-    return static_cast<std::size_t>(z) * Chunk::SIZE * Chunk::SIZE +
-           static_cast<std::size_t>(y) * Chunk::SIZE + static_cast<std::size_t>(x);
+    return (static_cast<std::size_t>(z) * Chunk::SIZE * Chunk::SIZE) +
+           (static_cast<std::size_t>(y) * Chunk::SIZE) + static_cast<std::size_t>(x);
 }
 
 bool inRange(int v) {
@@ -21,6 +21,13 @@ BlockId Chunk::get(int x, int y, int z) const {
     assert(inRange(x));
     assert(inRange(y));
     assert(inRange(z));
+    return m_blocks[toIdx(x, y, z)];
+}
+
+BlockId Chunk::getOrAir(int x, int y, int z) const {
+    if (!inRange(x) || !inRange(y) || !inRange(z)) {
+        return hs::blocks::Air;
+    }
     return m_blocks[toIdx(x, y, z)];
 }
 

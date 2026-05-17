@@ -66,3 +66,26 @@ TEST_CASE("Chunk storage is X-innermost (z*1024 + y*32 + x)") {
     CHECK(data[32] == blocks::Dirt);
     CHECK(data[1024] == blocks::Stone);
 }
+
+TEST_CASE("Chunk: getOrAir returns Air for negative coordinates") {
+    hs::Chunk chunk;
+    chunk.set(0, 0, 0, hs::blocks::Dirt);
+    CHECK(chunk.getOrAir(-1, 0, 0) == hs::blocks::Air);
+    CHECK(chunk.getOrAir(0, -1, 0) == hs::blocks::Air);
+    CHECK(chunk.getOrAir(0, 0, -1) == hs::blocks::Air);
+}
+
+TEST_CASE("Chunk: getOrAir returns Air for coordinates >= SIZE") {
+    hs::Chunk chunk;
+    chunk.set(31, 31, 31, hs::blocks::Dirt);
+    CHECK(chunk.getOrAir(32, 0, 0) == hs::blocks::Air);
+    CHECK(chunk.getOrAir(0, 32, 0) == hs::blocks::Air);
+    CHECK(chunk.getOrAir(0, 0, 32) == hs::blocks::Air);
+}
+
+TEST_CASE("Chunk: getOrAir agrees with get for in-range coordinates") {
+    hs::Chunk chunk;
+    chunk.set(5, 10, 15, hs::blocks::Stone);
+    CHECK(chunk.getOrAir(5, 10, 15) == hs::blocks::Stone);
+    CHECK(chunk.getOrAir(4, 10, 15) == hs::blocks::Air);  // default
+}

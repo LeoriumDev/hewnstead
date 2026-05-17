@@ -10,7 +10,7 @@ TEST_CASE("Mesher: empty chunk emits zero vertices") {
     CHECK(vertices.empty());
 }
 
-TEST_CASE("Mesher: single block emits 36 vertices (no culling)") {
+TEST_CASE("Mesher: isolated block emits 36 vertices (six air neighbors)") {
     hs::Chunk chunk;
     chunk.set(5, 5, 5, hs::blocks::Dirt);
     auto vertices = hs::mesher::buildMesh(chunk);
@@ -18,7 +18,7 @@ TEST_CASE("Mesher: single block emits 36 vertices (no culling)") {
     CHECK(vertices.size() == 36);
 }
 
-TEST_CASE("Mesher: full chunk emits 32^3 * 36 vertices") {
+TEST_CASE("Mesher: full chunk emits outer shell only (32^2 * 6 faces * 6 vertices)") {
     hs::Chunk chunk;
     for (int z = 0; z < hs::Chunk::SIZE; ++z) {
         for (int y = 0; y < hs::Chunk::SIZE; ++y) {
@@ -28,9 +28,10 @@ TEST_CASE("Mesher: full chunk emits 32^3 * 36 vertices") {
         }
     }
     auto vertices = hs::mesher::buildMesh(chunk);
+    // 6 outer surfaces × 32² blocks per surface × 6 vertex per face
     constexpr std::size_t expected =
-        static_cast<std::size_t>(hs::Chunk::SIZE) * hs::Chunk::SIZE * hs::Chunk::SIZE * 36;
-    CHECK(vertices.size() == expected);
+        std::size_t{6} * hs::Chunk::SIZE * hs::Chunk::SIZE * std::size_t{6};
+    CHECK(vertices.size() == expected);  // 36,864
 }
 
 TEST_CASE("Mesher: single-block vertex positions stay within block bounds") {
@@ -62,4 +63,27 @@ TEST_CASE("Mesher: non-origin block emits at correct world position") {
         }
     }
     CHECK(foundOriginCorner);
+}
+
+TEST_CASE("Mesher: two adjacent blocks cull the shared face pair") {
+    hs::Chunk chunk;
+    chunk.set(10, 10, 10, hs::blocks::Dirt);
+    chunk.set(11, 10, 10, hs::blocks::Dirt);  // east neighbor of the first
+    auto vertices = hs::mesher::buildMesh(chunk);
+
+    // Two blocks × 6 faces × 6 vertex = 72 if unculled.
+    // The shared face pair (first block's east + second block's west) is hidden.
+    // 2 faces culled × 6 vertex = 12 culled. Expected: 72 - 12 = 60.
+    CHECK(vertices.size() == 60);
+}
+
+TEST_CASE(
+    "Mesher: block at chunk corner (0,0,0) emits all 6 faces (OOB neighbors treated as air)") {
+    hs::Chunk chunk;
+    chunk.set(0, 0, 0, hs::blocks::Dirt);
+    auto vertices = hs::mesher::buildMesh(chunk);
+
+    // (0,0,0) has three OOB neighbors (-1 on each axis) and three in-bounds-air
+    // neighbors. All six should be treated as air → all 6 faces emit.
+    CHECK(vertices.size() == 36);
 }

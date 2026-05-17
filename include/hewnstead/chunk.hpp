@@ -17,7 +17,11 @@ public:
 
     Chunk() = default;
 
+    // (x, y, z) must be in [0, SIZE).
     [[nodiscard]] BlockId get(int x, int y, int z) const;
+
+    // (x, y, z) may be anywhere; OOB is Air
+    [[nodiscard]] BlockId getOrAir(int x, int y, int z) const;
 
     // (x, y, z) must be in [0, SIZE).
     void set(int x, int y, int z, BlockId id);

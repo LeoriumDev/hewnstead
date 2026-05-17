@@ -38,6 +38,16 @@ constexpr std::array<glm::vec3, FACE_COUNT> FACE_COLORS = {{
     {0.85F, 0.20F, 0.20F},  // North = red
 }};
 
+// Per-face neighbor cell offsets
+constexpr std::array<glm::ivec3, FACE_COUNT> FACE_NEIGHBOR_OFFSETS = {{
+    {+1, 0, 0},  // East   (+X)
+    {-1, 0, 0},  // West   (-X)
+    {0, +1, 0},  // Top    (+Y)
+    {0, -1, 0},  // Bottom (-Y)
+    {0, 0, +1},  // South  (+Z)
+    {0, 0, -1},  // North  (-Z)
+}};
+
 void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face) {
     const auto idx = static_cast<std::size_t>(face);
     const auto& corners = FACE_CORNERS[idx];
@@ -74,12 +84,18 @@ std::vector<ChunkVertex> buildMesh(const Chunk& chunk) {
                     static_cast<float>(y),
                     static_cast<float>(z),
                 };
-                emitFace(vertices, base, Face::East);
-                emitFace(vertices, base, Face::West);
-                emitFace(vertices, base, Face::Top);
-                emitFace(vertices, base, Face::Bottom);
-                emitFace(vertices, base, Face::South);
-                emitFace(vertices, base, Face::North);
+
+                for (std::size_t f = 0; f < FACE_COUNT; f++) {
+                    const glm::ivec3 offset = FACE_NEIGHBOR_OFFSETS[f];
+                    const BlockId neighbor =
+                        chunk.getOrAir(x + offset.x, y + offset.y, z + offset.z);
+                    // Replace this inline check with isOpaque(neighbor) when transparent blocks is
+                    // added (water, glass, leaves)
+                    if (neighbor != hs::blocks::Air) {
+                        continue;  // hidden between two solid blocks; cull
+                    }
+                    emitFace(vertices, base, static_cast<Face>(f));
+                }
             }
         }
     }

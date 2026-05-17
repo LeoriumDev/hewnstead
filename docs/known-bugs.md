@@ -32,3 +32,48 @@ This is a known limitation of GLFW's Cocoa backend, not a Hewnstead bug.
 Both deferred — for now doesn't justify either.
 
 **Filed**: 2026-05-08
+
+### Cross-chunk seam emits duplicate boundary faces
+
+**Symptom**: When Stage 5 places adjacent chunks side by side, the shared
+boundary between them will emit two coplanar faces — one from each chunk —
+instead of culling both. Back-face culling makes the result visually correct,
+but the GPU pays for vertex shading on both faces plus fragment shading on
+the visible one (the back-facing one is discarded after rasterization,
+wasting fillrate).
+
+Not yet observable: Stage 3C ships with one chunk, so no seams exist. Will
+appear the moment Stage 5 spawns a second chunk adjacent to the first.
+
+**Root cause**: Stage 3C mesher treats out-of-bounds neighbor lookups as Air
+via `Chunk::getOrAir`. From inside each chunk, the boundary faces appear to
+face empty space — so both chunks emit them. The mesher has no awareness of
+neighboring chunks; the OOB-as-air policy is the deliberate Stage 3C
+boundary contract (PROJECT_INDEX §15, Stage 3C guide §2.4).
+
+This is a known-deferred bug, not an oversight. Single-chunk Stage 3C is
+correct as-is; cross-chunk awareness is Stage 5 territory.
+
+**Cost when it manifests**: ~6,144 wasted vertex per chunk-pair sharing a
+full 32×32 boundary (one boundary surface × 6 vertex per face × 2 chunks).
+For N chunks arranged in a contiguous region, roughly 3N × 6,144 wasted
+vertex (each interior chunk has neighbors on all six sides; edge chunks
+fewer). Acceptable while chunk count is small; problematic at Stage 5 view
+distance.
+
+**Workaround**: None needed for Stage 3C / 3D / 4 (single chunk).
+
+**Fix (Stage 5)**: Cross-chunk mesher queries neighbor chunks for OOB
+lookups instead of returning Air. Probable shapes:
+
+- `World::getBlock(worldCoords)` global accessor that resolves chunk +
+  in-chunk offset and delegates to the right `Chunk::get`.
+- `ChunkNeighbors` struct (6 `Chunk*`, one per face direction) passed to
+  `buildMesh` alongside the central chunk. Mesher checks the neighbor pointer
+  for boundary lookups, falls back to Air if the neighbor isn't loaded
+  (chunk at world edge or not-yet-streamed).
+
+Decision deferred to Stage 5; ADR worth writing once the streaming model
+is clearer.
+
+**Filed**: 2026-05-17
