@@ -4,6 +4,7 @@ add_executable(hewnstead_tests
     test_chunk_coord.cpp
     test_chunk_manager.cpp
     test_mesher.cpp
+    test_raycast.cpp
 )
 
 target_link_libraries(hewnstead_tests PRIVATE
