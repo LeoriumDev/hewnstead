@@ -36,6 +36,7 @@ void Chunk::set(int x, int y, int z, BlockId id) {
     assert(inRange(y));
     assert(inRange(z));
     m_blocks[toIdx(x, y, z)] = id;
+    m_dirty = true;
 }
 
 }  // namespace hs
