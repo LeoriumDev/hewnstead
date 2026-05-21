@@ -1,5 +1,6 @@
 #include <hewnstead/camera.hpp>
 #include <hewnstead/debug_overlay.hpp>
+#include <hewnstead/raycast.hpp>
 
 #include <glad/gl.h>
 
@@ -28,7 +29,11 @@ constexpr float SAMPLE_INTERVAL = 0.5F;
 
 }  // namespace
 
-void drawCameraHud(const Camera& camera, float dt) {
+void drawCameraHud(const Camera& camera,
+                   float dt,
+                   const std::optional<RaycastHit>& lookingAt,
+                   const char* targetBlockName,
+                   BlockId selectedBlock) {
     constexpr ImGuiWindowFlags FLAGS = ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration |
                                        ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav |
                                        ImGuiWindowFlags_AlwaysAutoResize |
@@ -67,6 +72,27 @@ void drawCameraHud(const Camera& camera, float dt) {
     ImGui::Text("pos: x: %.2f, y: %.2f, z: %.2f", pos.x, pos.y, pos.z);
     ImGui::Text("yaw: %d\xc2\xb0 pitch %d\xc2\xb0", yawInt, pitchInt);
     ImGui::Text("fps: %.0f", displayedFps);
+
+    ImGui::Separator();
+    ImGui::Text("Raycast:");
+    if (lookingAt) {
+        ImGui::Text(
+            "  cell: (%d, %d, %d)", lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z);
+        if (lookingAt->face) {
+            ImGui::Text("  face: %s", faceToString(*lookingAt->face));
+            ImGui::Text("  distance: %.2f", lookingAt->distance);
+            if (targetBlockName != nullptr) {
+                ImGui::Text("  block: %s", targetBlockName);
+            }
+        } else {
+            ImGui::Text("  (inside block)");
+        }
+    } else {
+        ImGui::Text("  (none)");
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Selected: %s", blockName(selectedBlock));
 
     ImGui::End();
 }

@@ -20,4 +20,10 @@ constexpr float FOV_DEGREES = 60.0F;
 constexpr float NEAR_PLANE = 0.1F;
 constexpr float FAR_PLANE = 1000.0F;
 
+// Block place/break reach
+constexpr int MAX_REACH = 5;
+
+// Cube outline
+constexpr int CUBE_EDGES = 24;
+
 }  // namespace hs::config

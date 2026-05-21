@@ -26,4 +26,23 @@ constexpr BlockId Grass = 5;
 
 }  // namespace blocks
 
+[[nodiscard]] inline const char* blockName(BlockId id) {
+    switch (id) {
+    case blocks::Air:
+        return "Air";
+    case blocks::Stone:
+        return "Stone";
+    case blocks::Dirt:
+        return "Dirt";
+    case blocks::Log:
+        return "Log";
+    case blocks::Planks:
+        return "Planks";
+    case blocks::Grass:
+        return "Grass";
+    default:
+        return "?";
+    }
+}
+
 }  // namespace hs
