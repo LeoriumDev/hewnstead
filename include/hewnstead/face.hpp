@@ -6,21 +6,21 @@
 
 namespace hs {
 
-enum Face : std::uint8_t { East, West, Top, Bottom, South, North, FACE_COUNT };
+enum class Face : std::uint8_t { East, West, Top, Bottom, South, North, FACE_COUNT };
 
 [[nodiscard]] inline const char* faceToString(Face f) {
     switch (f) {
-    case East:
+    case Face::East:
         return "East";
-    case West:
+    case Face::West:
         return "West";
-    case Top:
+    case Face::Top:
         return "Top";
-    case Bottom:
+    case Face::Bottom:
         return "Bottom";
-    case South:
+    case Face::South:
         return "South";
-    case North:
+    case Face::North:
         return "North";
     default:
         return "?";
@@ -29,17 +29,17 @@ enum Face : std::uint8_t { East, West, Top, Bottom, South, North, FACE_COUNT };
 
 [[nodiscard]] inline glm::ivec3 faceNormal(Face f) {
     switch (f) {
-    case East:
+    case Face::East:
         return {1, 0, 0};
-    case West:
+    case Face::West:
         return {-1, 0, 0};
-    case Top:
+    case Face::Top:
         return {0, 1, 0};
-    case Bottom:
+    case Face::Bottom:
         return {0, -1, 0};
-    case South:
+    case Face::South:
         return {0, 0, 1};
-    case North:
+    case Face::North:
         return {0, 0, -1};
     default:
         return {0, 0, 0};

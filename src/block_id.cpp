@@ -11,17 +11,17 @@ std::uint32_t textureLayer(BlockId id, Face face) {
     case Dirt:
         return 1;
     case Log:
-        if (face == Top || face == Bottom) {
+        if (face == Face::Top || face == Face::Bottom) {
             return 3;  // log_top layer
         }
         return 2;  // log_side layer
     case Planks:
         return 4;
     case Grass:
-        if (face == Top) {
+        if (face == Face::Top) {
             return 5;  // grass_top
         }
-        if (face == Bottom) {
+        if (face == Face::Bottom) {
             return 1;  // dirt
         }
         return 6;  // grass_side

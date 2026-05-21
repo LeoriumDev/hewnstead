@@ -46,10 +46,34 @@ void setupGlState() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void handleSpecialKeys(hs::Input& input,
-                       hs::Window& window,
-                       bool& overlayVisible,
-                       hs::BlockId& selectedBlock) {
+constexpr std::optional<hs::BlockId> keyToBlock(int key) {
+    switch (key) {
+    case GLFW_KEY_1:
+        return hs::blocks::Stone;
+    case GLFW_KEY_2:
+        return hs::blocks::Dirt;
+    case GLFW_KEY_3:
+        return hs::blocks::Log;
+    case GLFW_KEY_4:
+        return hs::blocks::Planks;
+    case GLFW_KEY_5:
+        return hs::blocks::Grass;
+    default:
+        return std::nullopt;
+    }
+}
+
+void handleBlockHotkeys(const hs::Input& input, hs::BlockId& selectedBlock) {
+    for (int key = GLFW_KEY_1; key <= GLFW_KEY_5; ++key) {
+        if (input.justPressed(key)) {
+            if (auto blk = keyToBlock(key)) {
+                selectedBlock = *blk;
+            }
+        }
+    }
+}
+
+void handleSpecialKeys(hs::Input& input, hs::Window& window, bool& overlayVisible) {
     if (input.justPressed(GLFW_KEY_ESCAPE)) {
         window.requestClose();
     }
@@ -73,31 +97,6 @@ void handleSpecialKeys(hs::Input& input,
     if (input.justPressed(GLFW_KEY_ENTER) &&
         (input.isDown(GLFW_KEY_LEFT_ALT) || input.isDown(GLFW_KEY_RIGHT_ALT))) {
         window.toggleFullscreen();
-    }
-
-    auto keyToBlock = [](int key) -> std::optional<hs::BlockId> {
-        switch (key) {
-        case GLFW_KEY_1:
-            return hs::blocks::Stone;
-        case GLFW_KEY_2:
-            return hs::blocks::Dirt;
-        case GLFW_KEY_3:
-            return hs::blocks::Log;
-        case GLFW_KEY_4:
-            return hs::blocks::Planks;
-        case GLFW_KEY_5:
-            return hs::blocks::Grass;
-        default:
-            return std::nullopt;
-        }
-    };
-
-    for (int key = GLFW_KEY_1; key <= GLFW_KEY_5; ++key) {
-        if (input.justPressed(key)) {
-            if (auto blk = keyToBlock(key)) {
-                selectedBlock = *blk;
-            }
-        }
     }
 }
 
@@ -164,7 +163,7 @@ void handleBreakBlock(const hs::Input& input,
 void handlePlaceBlock(const hs::Input& input,
                       hs::Chunk& chunk,
                       const std::optional<hs::RaycastHit>& lookingAt,
-                      hs::BlockId& selectedBlock) {
+                      hs::BlockId selectedBlock) {
     if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || input.imguiWantsMouse() || !lookingAt ||
         !lookingAt->face) {  // inside-block hit, reject place
         return;
@@ -193,8 +192,8 @@ void remeshIfDirty(hs::Chunk& chunk, hs::ChunkMesh& chunkMesh) {
     chunk.clearDirty();
 }
 
-std::array<hs::LineVertex, hs::config::CUBE_EDGES> cubeOutlineVertices(const glm::ivec3& cell,
-                                                                       const glm::vec3& color) {
+std::array<hs::LineVertex, hs::config::CUBE_OUTLINE_VERTEX_COUNT>
+cubeOutlineVertices(const glm::ivec3& cell, const glm::vec3& color) {
     const auto base = glm::vec3{cell};
     const std::array<glm::vec3, 8> c = {
         base + glm::vec3{0, 0, 0},
@@ -223,12 +222,29 @@ std::array<hs::LineVertex, hs::config::CUBE_EDGES> cubeOutlineVertices(const glm
         {2, 6},
         {3, 7},
     }};
-    std::array<hs::LineVertex, hs::config::CUBE_EDGES> out;
+    std::array<hs::LineVertex, hs::config::CUBE_OUTLINE_VERTEX_COUNT> out;
     for (std::size_t i = 0; i < 12; ++i) {
         out[2 * i] = {.position = c[edges[i].first], .color = color};
         out[(2 * i) + 1] = {.position = c[edges[i].second], .color = color};
     }
     return out;
+}
+
+void drawCrosshair(bool overlayVisible) {
+    if (overlayVisible)
+        return;
+
+    ImDrawList* drawList = ImGui::GetForegroundDrawList();
+    ImVec2 center = ImGui::GetIO().DisplaySize;
+    center.x *= 0.5F;
+    center.y *= 0.5F;
+
+    constexpr float ARM = 10.0F;
+    constexpr float THICKNESS = 2.0F;
+    constexpr ImU32 COLOR = IM_COL32(255, 255, 255, 100);
+
+    drawList->AddLine({center.x - ARM, center.y}, {center.x + ARM, center.y}, COLOR, THICKNESS);
+    drawList->AddLine({center.x, center.y - ARM}, {center.x, center.y + ARM}, COLOR, THICKNESS);
 }
 
 constexpr glm::vec3 OUTLINE_COLOR{0.0F, 0.0F, 0.0F};
@@ -271,7 +287,6 @@ int main() {
         }
 
         const auto vertices = hs::mesher::buildMesh(*chunk);
-        spdlog::info("Mesher emitted {} vertices for fully-dirt chunk", vertices.size());
 
         hs::ChunkMesh chunkMesh;
         chunkMesh.upload(vertices);
@@ -317,7 +332,8 @@ int main() {
             // ─── Input ───
             input.update(window.raw());
             window.pollEvents();
-            handleSpecialKeys(input, window, overlayVisible, selectedBlock);
+            handleSpecialKeys(input, window, overlayVisible);
+            handleBlockHotkeys(input, selectedBlock);
 
             // ─── Simulation ───
             camera.update(input, dt);
@@ -349,20 +365,7 @@ int main() {
             }
 
             // crosshair at screen center
-            {
-                ImDrawList* drawList = ImGui::GetForegroundDrawList();
-                ImVec2 center = ImGui::GetIO().DisplaySize;
-                center.x *= 0.5F;
-                center.y *= 0.5F;
-                constexpr float ARM = 10.0F;                           // 十字 arm 長度 px
-                constexpr float THICKNESS = 2.0F;                      // 線寬 px
-                constexpr ImU32 COLOR = IM_COL32(255, 255, 255, 100);  // white, slight alpha
-
-                drawList->AddLine(
-                    {center.x - ARM, center.y}, {center.x + ARM, center.y}, COLOR, THICKNESS);
-                drawList->AddLine(
-                    {center.x, center.y - ARM}, {center.x, center.y + ARM}, COLOR, THICKNESS);
-            }
+            drawCrosshair(overlayVisible);
 
             // ─── Render ───
             glBeginQuery(GL_SAMPLES_PASSED, sampleQuery);

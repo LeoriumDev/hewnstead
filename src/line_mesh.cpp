@@ -1,4 +1,3 @@
-
 #include <hewnstead/glcheck.hpp>
 #include <hewnstead/line_mesh.hpp>
 

@@ -21,9 +21,10 @@ constexpr float NEAR_PLANE = 0.1F;
 constexpr float FAR_PLANE = 1000.0F;
 
 // Block place/break reach
-constexpr int MAX_REACH = 5;
+constexpr float MAX_REACH = 5;
 
 // Cube outline
-constexpr int CUBE_EDGES = 24;
+constexpr int CUBE_EDGE_COUNT = 12;
+constexpr int CUBE_OUTLINE_VERTEX_COUNT = CUBE_EDGE_COUNT * 2;
 
 }  // namespace hs::config

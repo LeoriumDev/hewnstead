@@ -73,6 +73,8 @@ void drawCameraHud(const Camera& camera,
     ImGui::Text("yaw: %d\xc2\xb0 pitch %d\xc2\xb0", yawInt, pitchInt);
     ImGui::Text("fps: %.0f", displayedFps);
 
+    ImGui::Text("Block Selected: %s", blockName(selectedBlock));
+
     ImGui::Separator();
     ImGui::Text("Raycast:");
     if (lookingAt) {
@@ -90,9 +92,6 @@ void drawCameraHud(const Camera& camera,
     } else {
         ImGui::Text("  (none)");
     }
-
-    ImGui::Separator();
-    ImGui::Text("Selected: %s", blockName(selectedBlock));
 
     ImGui::End();
 }
