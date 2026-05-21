@@ -111,6 +111,8 @@ add_library(hewnstead_core STATIC
     src/mesher.cpp
     src/block_id.cpp
     src/texture_array.cpp
+    src/raycast.cpp
+    src/line_mesh.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
