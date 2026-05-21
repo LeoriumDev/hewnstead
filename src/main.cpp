@@ -1,15 +1,18 @@
-#include "hewnstead/chunk_manager.hpp"
-#include "hewnstead/mesher.hpp"
-#include "hewnstead/texture_array.hpp"
 #include <hewnstead/camera.hpp>
+#include <hewnstead/chunk_manager.hpp>
 #include <hewnstead/chunk_mesh.hpp>
 #include <hewnstead/chunk_vertex.hpp>
 #include <hewnstead/config.hpp>
 #include <hewnstead/debug_overlay.hpp>
 #include <hewnstead/imgui_runtime.hpp>
 #include <hewnstead/input.hpp>
+#include <hewnstead/line_mesh.hpp>
+#include <hewnstead/line_vertex.hpp>
+#include <hewnstead/mesher.hpp>
+#include <hewnstead/raycast.hpp>
 #include <hewnstead/shader.hpp>
 #include <hewnstead/splash.hpp>
+#include <hewnstead/texture_array.hpp>
 #include <hewnstead/window.hpp>
 
 #include <glad/gl.h>
@@ -43,7 +46,10 @@ void setupGlState() {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void handleSpecialKeys(hs::Input& input, hs::Window& window, bool& overlayVisible) {
+void handleSpecialKeys(hs::Input& input,
+                       hs::Window& window,
+                       bool& overlayVisible,
+                       hs::BlockId& selectedBlock) {
     if (input.justPressed(GLFW_KEY_ESCAPE)) {
         window.requestClose();
     }
@@ -68,6 +74,31 @@ void handleSpecialKeys(hs::Input& input, hs::Window& window, bool& overlayVisibl
         (input.isDown(GLFW_KEY_LEFT_ALT) || input.isDown(GLFW_KEY_RIGHT_ALT))) {
         window.toggleFullscreen();
     }
+
+    auto keyToBlock = [](int key) -> std::optional<hs::BlockId> {
+        switch (key) {
+        case GLFW_KEY_1:
+            return hs::blocks::Stone;
+        case GLFW_KEY_2:
+            return hs::blocks::Dirt;
+        case GLFW_KEY_3:
+            return hs::blocks::Log;
+        case GLFW_KEY_4:
+            return hs::blocks::Planks;
+        case GLFW_KEY_5:
+            return hs::blocks::Grass;
+        default:
+            return std::nullopt;
+        }
+    };
+
+    for (int key = GLFW_KEY_1; key <= GLFW_KEY_5; ++key) {
+        if (input.justPressed(key)) {
+            if (auto blk = keyToBlock(key)) {
+                selectedBlock = *blk;
+            }
+        }
+    }
 }
 
 void drawDebugUi(const hs::ChunkMesh& mesh,
@@ -90,7 +121,9 @@ void renderScene(const hs::Shader& shader,
                  const hs::Camera& camera,
                  const hs::TextureArray& blockTextures,
                  float aspect,
-                 bool wireframe) {
+                 bool wireframe,
+                 const hs::LineMesh& lineMesh,
+                 const hs::Shader& lineShader) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
@@ -109,7 +142,96 @@ void renderScene(const hs::Shader& shader,
 
     blockTextures.bind(0);
     mesh.draw();
+
+    if (lineMesh.vertexCount() > 0) {
+        lineShader.use();
+        lineShader.setMat4("u_model", model);
+        lineShader.setMat4("u_view", view);
+        lineShader.setMat4("u_projection", projection);
+        lineMesh.draw();
+    }
 }
+
+void handleBreakBlock(const hs::Input& input,
+                      hs::Chunk& chunk,
+                      const std::optional<hs::RaycastHit>& lookingAt) {
+    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || input.imguiWantsMouse() || !lookingAt) {
+        return;
+    }
+    chunk.set(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z, hs::blocks::Air);
+}
+
+void handlePlaceBlock(const hs::Input& input,
+                      hs::Chunk& chunk,
+                      const std::optional<hs::RaycastHit>& lookingAt,
+                      hs::BlockId& selectedBlock) {
+    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || input.imguiWantsMouse() || !lookingAt ||
+        !lookingAt->face) {  // inside-block hit, reject place
+        return;
+    }
+    glm::ivec3 placeCell = lookingAt->cell + hs::faceNormal(*lookingAt->face);
+
+    bool inBounds = placeCell.x >= 0 && placeCell.x < hs::Chunk::SIZE && placeCell.y >= 0 &&
+                    placeCell.y < hs::Chunk::SIZE && placeCell.z >= 0 &&
+                    placeCell.z < hs::Chunk::SIZE;
+    if (!inBounds) {
+        return;
+    }
+
+    if (chunk.getOrAir(placeCell.x, placeCell.y, placeCell.z) != hs::blocks::Air) {
+        return;
+    }
+    chunk.set(placeCell.x, placeCell.y, placeCell.z, selectedBlock);
+}
+
+void remeshIfDirty(hs::Chunk& chunk, hs::ChunkMesh& chunkMesh) {
+    if (!chunk.isDirty()) {
+        return;
+    }
+    const auto vertices = hs::mesher::buildMesh(chunk);
+    chunkMesh.upload(vertices);
+    chunk.clearDirty();
+}
+
+std::array<hs::LineVertex, hs::config::CUBE_EDGES> cubeOutlineVertices(const glm::ivec3& cell,
+                                                                       const glm::vec3& color) {
+    const auto base = glm::vec3{cell};
+    const std::array<glm::vec3, 8> c = {
+        base + glm::vec3{0, 0, 0},
+        base + glm::vec3{1, 0, 0},
+        base + glm::vec3{1, 0, 1},
+        base + glm::vec3{0, 0, 1},
+        base + glm::vec3{0, 1, 0},
+        base + glm::vec3{1, 1, 0},
+        base + glm::vec3{1, 1, 1},
+        base + glm::vec3{0, 1, 1},
+    };
+    const std::array<std::pair<int, int>, 12> edges = {{
+        // bottom
+        {0, 1},
+        {1, 2},
+        {2, 3},
+        {3, 0},
+        // top
+        {4, 5},
+        {5, 6},
+        {6, 7},
+        {7, 4},
+        // vertical
+        {0, 4},
+        {1, 5},
+        {2, 6},
+        {3, 7},
+    }};
+    std::array<hs::LineVertex, hs::config::CUBE_EDGES> out;
+    for (std::size_t i = 0; i < 12; ++i) {
+        out[2 * i] = {.position = c[edges[i].first], .color = color};
+        out[(2 * i) + 1] = {.position = c[edges[i].second], .color = color};
+    }
+    return out;
+}
+
+constexpr glm::vec3 OUTLINE_COLOR{0.0F, 0.0F, 0.0F};
 
 }  // namespace
 
@@ -119,6 +241,7 @@ int main() {
 
         hs::Window window(hs::config::WINDOW_WIDTH, hs::config::WINDOW_HEIGHT, "Hewnstead");
         hs::Shader shader("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
+        hs::Shader lineShader("assets/shaders/line.vert", "assets/shaders/line.frag");
 
         constexpr std::array<std::string_view, 7> texturePaths = {
             "assets/textures/blocks/stone.png",       // layer 0
@@ -142,6 +265,7 @@ int main() {
                     chunk->set(x, 5, z, hs::blocks::Dirt);
                     chunk->set(x, 10, z, hs::blocks::Planks);
                     chunk->set(x, 15, z, hs::blocks::Grass);
+                    chunk->set(x, 20, z, hs::blocks::Stone);
                 }
             }
         }
@@ -151,6 +275,8 @@ int main() {
 
         hs::ChunkMesh chunkMesh;
         chunkMesh.upload(vertices);
+
+        hs::LineMesh lineMesh;
 
         hs::Input input;
         hs::Camera camera;
@@ -177,6 +303,10 @@ int main() {
         bool overlayVisible = false;
         bool wireframe = false;
 
+        // Target block
+        hs::BlockId selectedBlock = hs::blocks::Stone;
+        const char* targetBlockName = nullptr;
+
         while (!window.shouldClose()) {
             // ─── Frame timing ───
             double now = glfwGetTime();
@@ -187,21 +317,63 @@ int main() {
             // ─── Input ───
             input.update(window.raw());
             window.pollEvents();
-            handleSpecialKeys(input, window, overlayVisible);
+            handleSpecialKeys(input, window, overlayVisible, selectedBlock);
 
             // ─── Simulation ───
             camera.update(input, dt);
 
+            // ─── Targeting ───
+            std::optional<hs::RaycastHit> lookingAt =
+                hs::raycast(*chunk, camera.position(), camera.forward(), hs::config::MAX_REACH);
+            if (lookingAt && lookingAt->face) {
+                hs::BlockId id =
+                    chunk->getOrAir(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z);
+                targetBlockName = hs::blockName(id);
+                auto outline = cubeOutlineVertices(lookingAt->cell, OUTLINE_COLOR);
+                lineMesh.upload(std::span{outline});
+            } else {
+                targetBlockName = nullptr;
+                lineMesh.upload(std::span<const hs::LineVertex>{});  // empty
+            }
+
+            // ─── Block interaction ───
+            handleBreakBlock(input, *chunk, lookingAt);
+            handlePlaceBlock(input, *chunk, lookingAt, selectedBlock);
+            remeshIfDirty(*chunk, chunkMesh);
+
             // ─── UI ───
             runtime.beginFrame();
-            hs::drawCameraHud(camera, dt);
+            hs::drawCameraHud(camera, dt, lookingAt, targetBlockName, selectedBlock);
             if (overlayVisible) {
                 drawDebugUi(chunkMesh, samplesPassed, actualSamples, wireframe);
             }
 
+            // crosshair at screen center
+            {
+                ImDrawList* drawList = ImGui::GetForegroundDrawList();
+                ImVec2 center = ImGui::GetIO().DisplaySize;
+                center.x *= 0.5F;
+                center.y *= 0.5F;
+                constexpr float ARM = 10.0F;                           // 十字 arm 長度 px
+                constexpr float THICKNESS = 2.0F;                      // 線寬 px
+                constexpr ImU32 COLOR = IM_COL32(255, 255, 255, 100);  // white, slight alpha
+
+                drawList->AddLine(
+                    {center.x - ARM, center.y}, {center.x + ARM, center.y}, COLOR, THICKNESS);
+                drawList->AddLine(
+                    {center.x, center.y - ARM}, {center.x, center.y + ARM}, COLOR, THICKNESS);
+            }
+
             // ─── Render ───
             glBeginQuery(GL_SAMPLES_PASSED, sampleQuery);
-            renderScene(shader, chunkMesh, camera, blockTextures, window.aspect(), wireframe);
+            renderScene(shader,
+                        chunkMesh,
+                        camera,
+                        blockTextures,
+                        window.aspect(),
+                        wireframe,
+                        lineMesh,
+                        lineShader);
             glEndQuery(GL_SAMPLES_PASSED);
             glGetQueryObjectui64v(sampleQuery, GL_QUERY_RESULT, &samplesPassed);
             runtime.endFrame();
