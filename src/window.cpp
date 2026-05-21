@@ -210,6 +210,7 @@ void Window::requestClose() {
 void Window::attachInput(Input* input) {
     m_input = input;
     glfwSetKeyCallback(m_window, keyCallback);
+    glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
 }
 
 void Window::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
@@ -218,6 +219,14 @@ void Window::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int acti
         return;
     }
     self->m_input->onKeyEvent(key, action);
+}
+
+void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/) {
+    auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (self == nullptr || self->m_input == nullptr) {
+        return;
+    }
+    self->m_input->onMouseButtonEvent(button, action);
 }
 
 void Window::setCursorMode(bool visible) {
