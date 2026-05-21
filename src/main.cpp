@@ -1,7 +1,6 @@
 #include <hewnstead/camera.hpp>
 #include <hewnstead/chunk_manager.hpp>
 #include <hewnstead/chunk_mesh.hpp>
-#include <hewnstead/chunk_vertex.hpp>
 #include <hewnstead/config.hpp>
 #include <hewnstead/debug_overlay.hpp>
 #include <hewnstead/imgui_runtime.hpp>
@@ -272,17 +271,17 @@ int main() {
 
         hs::ChunkManager chunkManager;
         hs::Chunk* chunk = chunkManager.loadChunk({.x = 0, .y = 0, .z = 0});
-        assert(chunk != nullptr);
+        if (chunk == nullptr) {
+            throw std::runtime_error("Failed to load initial chunk");
+        }
 
         for (int z = 0; z < hs::Chunk::SIZE; z++) {
-            for (int y = 0; y < hs::Chunk::SIZE; y++) {
-                for (int x = 0; x < hs::Chunk::SIZE; x++) {
-                    chunk->set(x, 0, z, hs::blocks::Log);
-                    chunk->set(x, 5, z, hs::blocks::Dirt);
-                    chunk->set(x, 10, z, hs::blocks::Planks);
-                    chunk->set(x, 15, z, hs::blocks::Grass);
-                    chunk->set(x, 20, z, hs::blocks::Stone);
-                }
+            for (int x = 0; x < hs::Chunk::SIZE; x++) {
+                chunk->set(x, 0, z, hs::blocks::Log);
+                chunk->set(x, 5, z, hs::blocks::Dirt);
+                chunk->set(x, 10, z, hs::blocks::Planks);
+                chunk->set(x, 15, z, hs::blocks::Grass);
+                chunk->set(x, 20, z, hs::blocks::Stone);
             }
         }
 
@@ -313,15 +312,15 @@ int main() {
             actualSamples = 1;
         }
 
-        // Loop state
-        double lastFrameTime = glfwGetTime();
-        bool overlayVisible = false;
-        bool wireframe = false;
-
         // Target block
         hs::BlockId selectedBlock = hs::blocks::Stone;
         const char* targetBlockName = nullptr;
 
+        // Loop state
+        bool overlayVisible = false;
+        bool wireframe = false;
+
+        double lastFrameTime = glfwGetTime();
         while (!window.shouldClose()) {
             // ─── Frame timing ───
             double now = glfwGetTime();
@@ -341,15 +340,18 @@ int main() {
             // ─── Targeting ───
             std::optional<hs::RaycastHit> lookingAt =
                 hs::raycast(*chunk, camera.position(), camera.forward(), hs::config::MAX_REACH);
+            static std::optional<glm::ivec3> lastOutlineCell;
             if (lookingAt && lookingAt->face) {
-                hs::BlockId id =
-                    chunk->getOrAir(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z);
-                targetBlockName = hs::blockName(id);
-                auto outline = cubeOutlineVertices(lookingAt->cell, OUTLINE_COLOR);
-                lineMesh.upload(std::span{outline});
+                if (!lastOutlineCell || *lastOutlineCell != lookingAt->cell) {
+                    auto outline = cubeOutlineVertices(lookingAt->cell, OUTLINE_COLOR);
+                    lineMesh.upload(std::span{outline});
+                    lastOutlineCell = lookingAt->cell;
+                }
             } else {
-                targetBlockName = nullptr;
-                lineMesh.upload(std::span<const hs::LineVertex>{});  // empty
+                if (lastOutlineCell) {
+                    lineMesh.upload(std::span<const hs::LineVertex>{});
+                    lastOutlineCell.reset();
+                }
             }
 
             // ─── Block interaction ───
