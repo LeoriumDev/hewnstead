@@ -16,20 +16,19 @@ static_assert(std::has_single_bit(static_cast<unsigned>(Chunk::SIZE)),
 
 }  // namespace
 
-Chunk* ChunkManager::loadChunk(ChunkCoord c) {
-    auto chunk = std::make_unique<Chunk>();
-    Chunk* raw = chunk.get();
-    m_chunks[c] = std::move(chunk);
-    return raw;
+std::shared_ptr<Chunk> ChunkManager::loadChunk(ChunkCoord c) {
+    auto chunk = std::make_shared<Chunk>();
+    m_chunks[c] = chunk;
+    return chunk;
 }
 
 void ChunkManager::unloadChunk(ChunkCoord c) {
     m_chunks.erase(c);
 }
 
-Chunk* ChunkManager::getChunk(ChunkCoord c) {
+std::shared_ptr<Chunk> ChunkManager::getChunk(ChunkCoord c) {
     auto it = m_chunks.find(c);
-    return it != m_chunks.end() ? it->second.get() : nullptr;
+    return it != m_chunks.end() ? it->second : nullptr;
 }
 
 std::size_t ChunkManager::chunkCount() const {

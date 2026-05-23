@@ -22,9 +22,9 @@ public:
     ChunkManager& operator=(ChunkManager&&) = delete;
 
     // Lifecycle
-    Chunk* loadChunk(ChunkCoord c);
+    std::shared_ptr<Chunk> loadChunk(ChunkCoord c);
     void unloadChunk(ChunkCoord c);
-    [[nodiscard]] Chunk* getChunk(ChunkCoord c);
+    [[nodiscard]] std::shared_ptr<Chunk> getChunk(ChunkCoord c);
     [[nodiscard]] std::size_t chunkCount() const;
 
     // World-coord conversion
@@ -35,7 +35,7 @@ public:
     [[nodiscard]] static glm::ivec3 worldPosToBlock(const glm::vec3& worldPos);
 
 private:
-    std::unordered_map<ChunkCoord, std::unique_ptr<Chunk>> m_chunks;
+    std::unordered_map<ChunkCoord, std::shared_ptr<Chunk>> m_chunks;
 };
 
 }  // namespace hs

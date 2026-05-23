@@ -16,6 +16,7 @@
 
 #include <glm/ext/vector_int3.hpp>
 
+#include <memory>
 #include <optional>
 
 namespace hs {
@@ -56,7 +57,7 @@ private:
     LineMesh m_lineMesh;
 
     // Single-chunk world
-    Chunk* m_chunk = nullptr;
+    std::shared_ptr<Chunk> m_chunk;
 
     // Per-frame view of what the camera is pointed at
     std::optional<RaycastHit> m_lookingAt;

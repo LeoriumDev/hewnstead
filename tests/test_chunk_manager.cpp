@@ -3,6 +3,8 @@
 
 #include <doctest/doctest.h>
 
+#include <memory>
+
 TEST_CASE("worldToChunk: positive coords") {
     auto c = hs::ChunkManager::worldToChunk(0, 0, 0);
     CHECK(c == hs::ChunkCoord{0, 0, 0});
@@ -103,12 +105,12 @@ TEST_CASE("ChunkManager load/get/unload") {
     CHECK(mgr.chunkCount() == 0);
     CHECK(mgr.getChunk({0, 0, 0}) == nullptr);
 
-    auto* a = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
+    auto a = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
     REQUIRE(a != nullptr);
     CHECK(mgr.chunkCount() == 1);
     CHECK(mgr.getChunk({0, 0, 0}) == a);
 
-    auto* b = mgr.loadChunk({.x = 1, .y = 2, .z = 3});
+    auto b = mgr.loadChunk({.x = 1, .y = 2, .z = 3});
     REQUIRE(b != nullptr);
     CHECK(b != a);
     CHECK(mgr.chunkCount() == 2);
@@ -122,11 +124,11 @@ TEST_CASE("ChunkManager load/get/unload") {
 TEST_CASE("loadChunk replaces existing chunk at same coord") {
     hs::ChunkManager mgr;
 
-    auto* a = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
+    auto a = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
     REQUIRE(a != nullptr);
 
     // Re-loading the same coord replaces (not emplace-if-missing).
-    auto* b = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
+    auto b = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
     REQUIRE(b != nullptr);
 
     CHECK(mgr.chunkCount() == 1);
@@ -139,7 +141,7 @@ TEST_CASE("loadChunk replaces existing chunk at same coord") {
 
 TEST_CASE("Loaded chunk starts as all Air") {
     hs::ChunkManager mgr;
-    auto* chunk = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
+    auto chunk = mgr.loadChunk({.x = 0, .y = 0, .z = 0});
     REQUIRE(chunk != nullptr);
 
     for (int z = 0; z < hs::Chunk::SIZE; ++z) {
