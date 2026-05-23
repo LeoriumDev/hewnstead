@@ -1,6 +1,5 @@
-#include <hewnstead/glcheck.hpp>
-#include <hewnstead/input.hpp>
-#include <hewnstead/window.hpp>
+#include <hewnstead/core/input.hpp>
+#include <hewnstead/core/window.hpp>
 
 #include <glad/gl.h>
 

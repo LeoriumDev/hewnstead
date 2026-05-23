@@ -1,5 +1,5 @@
-#include <hewnstead/chunk.hpp>
-#include <hewnstead/raycast.hpp>
+#include <hewnstead/world/chunk.hpp>
+#include <hewnstead/world/raycast.hpp>
 
 #include <cmath>
 #include <limits>

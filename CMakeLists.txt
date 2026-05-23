@@ -83,7 +83,7 @@ endif()
 add_library(glad STATIC third_party/glad/src/gl.c)
 target_include_directories(glad PUBLIC third_party/glad/include)
 
-add_library(stb_image STATIC src/stb_image_impl.cpp)
+add_library(stb_image STATIC third_party/stb/src/stb_image_impl.cpp)
 target_include_directories(stb_image PUBLIC third_party/stb/include)
 # Disable strict warnings for this TU only
 target_compile_options(stb_image PRIVATE
@@ -97,22 +97,23 @@ target_compile_options(stb_image PRIVATE
 )
 
 add_library(hewnstead_core STATIC
-    src/glcheck.cpp
-    src/window.cpp
-    src/shader.cpp
-    src/input.cpp
-    src/camera.cpp
-    src/chunk.cpp
-    src/chunk_manager.cpp
-    src/imgui_runtime.cpp
-    src/chunk_mesh.cpp
-    src/debug_overlay.cpp
-    src/splash.cpp
-    src/mesher.cpp
-    src/block_id.cpp
-    src/texture_array.cpp
-    src/raycast.cpp
-    src/line_mesh.cpp
+    src/core/application.cpp
+    src/core/glcheck.cpp
+    src/core/input.cpp
+    src/core/splash.cpp
+    src/core/window.cpp
+    src/render/camera.cpp
+    src/render/chunk_mesh.cpp
+    src/render/debug_overlay.cpp
+    src/render/imgui_runtime.cpp
+    src/render/line_mesh.cpp
+    src/render/mesher.cpp
+    src/render/shader.cpp
+    src/render/texture_array.cpp
+    src/world/block_id.cpp
+    src/world/chunk_manager.cpp
+    src/world/chunk.cpp
+    src/world/raycast.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include

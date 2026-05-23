@@ -1,5 +1,5 @@
-#include <hewnstead/chunk_mesh.hpp>
-#include <hewnstead/glcheck.hpp>
+#include <hewnstead/core/glcheck.hpp>
+#include <hewnstead/render/chunk_mesh.hpp>
 
 #include <glad/gl.h>
 

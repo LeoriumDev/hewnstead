@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hewnstead/chunk_vertex.hpp>
+#include <hewnstead/render/chunk_vertex.hpp>
 
 #include <span>
 

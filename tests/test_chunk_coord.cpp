@@ -1,4 +1,4 @@
-#include <hewnstead/chunk_coord.hpp>
+#include <hewnstead/world/chunk_coord.hpp>
 
 #include <doctest/doctest.h>
 

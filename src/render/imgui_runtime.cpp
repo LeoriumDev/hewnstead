@@ -1,5 +1,5 @@
-#include <hewnstead/imgui_runtime.hpp>
-#include <hewnstead/window.hpp>
+#include <hewnstead/core/window.hpp>
+#include <hewnstead/render/imgui_runtime.hpp>
 
 #include <spdlog/spdlog.h>
 

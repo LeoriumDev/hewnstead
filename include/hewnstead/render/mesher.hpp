@@ -1,7 +1,7 @@
 #pragma once
 
-#include <hewnstead/chunk_vertex.hpp>
-#include <hewnstead/face.hpp>
+#include <hewnstead/render/chunk_vertex.hpp>
+#include <hewnstead/world/face.hpp>
 
 #include <vector>
 

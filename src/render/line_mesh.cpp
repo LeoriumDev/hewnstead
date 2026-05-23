@@ -1,5 +1,5 @@
-#include <hewnstead/glcheck.hpp>
-#include <hewnstead/line_mesh.hpp>
+#include <hewnstead/core/glcheck.hpp>
+#include <hewnstead/render/line_mesh.hpp>
 
 #include <glad/gl.h>
 

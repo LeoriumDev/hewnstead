@@ -1,4 +1,4 @@
-#include <hewnstead/block_id.hpp>
+#include <hewnstead/world/block_id.hpp>
 
 #include <cassert>
 

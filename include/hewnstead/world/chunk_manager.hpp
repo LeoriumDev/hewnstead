@@ -1,7 +1,7 @@
 #pragma once
 
-#include <hewnstead/chunk.hpp>
-#include <hewnstead/chunk_coord.hpp>
+#include <hewnstead/world/chunk.hpp>
+#include <hewnstead/world/chunk_coord.hpp>
 
 #include <glm/vec3.hpp>
 

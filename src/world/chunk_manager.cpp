@@ -1,4 +1,4 @@
-#include <hewnstead/chunk_manager.hpp>
+#include <hewnstead/world/chunk_manager.hpp>
 
 #include <bit>
 #include <cmath>

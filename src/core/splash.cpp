@@ -1,4 +1,4 @@
-#include <hewnstead/splash.hpp>
+#include <hewnstead/core/splash.hpp>
 
 #include <spdlog/spdlog.h>
 

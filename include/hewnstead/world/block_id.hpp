@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hewnstead/face.hpp>
+#include <hewnstead/world/face.hpp>
 
 #include <cstdint>
 #include <type_traits>

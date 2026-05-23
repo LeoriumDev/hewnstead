@@ -1,5 +1,5 @@
-#include <hewnstead/glcheck.hpp>
-#include <hewnstead/texture_array.hpp>
+#include <hewnstead/core/glcheck.hpp>
+#include <hewnstead/render/texture_array.hpp>
 
 #include <spdlog/spdlog.h>
 #include <stb_image.h>

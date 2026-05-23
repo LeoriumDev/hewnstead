@@ -1,5 +1,5 @@
-#include <hewnstead/block_id.hpp>
-#include <hewnstead/chunk_manager.hpp>
+#include <hewnstead/world/block_id.hpp>
+#include <hewnstead/world/chunk_manager.hpp>
 
 #include <doctest/doctest.h>
 

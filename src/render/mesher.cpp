@@ -1,6 +1,6 @@
-#include <hewnstead/block_id.hpp>
-#include <hewnstead/chunk.hpp>
-#include <hewnstead/mesher.hpp>
+#include <hewnstead/render/mesher.hpp>
+#include <hewnstead/world/block_id.hpp>
+#include <hewnstead/world/chunk.hpp>
 
 #include <array>
 #include <cstddef>

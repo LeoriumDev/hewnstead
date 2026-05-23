@@ -1,6 +1,6 @@
-#include <hewnstead/camera.hpp>
-#include <hewnstead/debug_overlay.hpp>
-#include <hewnstead/raycast.hpp>
+#include <hewnstead/render/camera.hpp>
+#include <hewnstead/render/debug_overlay.hpp>
+#include <hewnstead/world/raycast.hpp>
 
 #include <glad/gl.h>
 

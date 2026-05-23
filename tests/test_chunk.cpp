@@ -1,4 +1,4 @@
-#include <hewnstead/chunk.hpp>
+#include <hewnstead/world/chunk.hpp>
 
 #include <doctest/doctest.h>
 

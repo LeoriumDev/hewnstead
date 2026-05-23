@@ -1,5 +1,5 @@
-#include <hewnstead/glcheck.hpp>
-#include <hewnstead/shader.hpp>
+#include <hewnstead/core/glcheck.hpp>
+#include <hewnstead/render/shader.hpp>
 
 #include <glad/gl.h>
 

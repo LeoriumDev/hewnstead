@@ -1,5 +1,5 @@
-#include <hewnstead/imgui_runtime.hpp>
-#include <hewnstead/input.hpp>
+#include <hewnstead/core/input.hpp>
+#include <hewnstead/render/imgui_runtime.hpp>
 
 namespace hs {
 

@@ -1,18 +1,18 @@
-#include <hewnstead/camera.hpp>
-#include <hewnstead/chunk_manager.hpp>
-#include <hewnstead/chunk_mesh.hpp>
-#include <hewnstead/config.hpp>
-#include <hewnstead/debug_overlay.hpp>
-#include <hewnstead/imgui_runtime.hpp>
-#include <hewnstead/input.hpp>
-#include <hewnstead/line_mesh.hpp>
-#include <hewnstead/line_vertex.hpp>
-#include <hewnstead/mesher.hpp>
-#include <hewnstead/raycast.hpp>
-#include <hewnstead/shader.hpp>
-#include <hewnstead/splash.hpp>
-#include <hewnstead/texture_array.hpp>
-#include <hewnstead/window.hpp>
+#include <hewnstead/core/config.hpp>
+#include <hewnstead/core/input.hpp>
+#include <hewnstead/core/splash.hpp>
+#include <hewnstead/core/window.hpp>
+#include <hewnstead/render/camera.hpp>
+#include <hewnstead/render/chunk_mesh.hpp>
+#include <hewnstead/render/debug_overlay.hpp>
+#include <hewnstead/render/imgui_runtime.hpp>
+#include <hewnstead/render/line_mesh.hpp>
+#include <hewnstead/render/line_vertex.hpp>
+#include <hewnstead/render/mesher.hpp>
+#include <hewnstead/render/shader.hpp>
+#include <hewnstead/render/texture_array.hpp>
+#include <hewnstead/world/chunk_manager.hpp>
+#include <hewnstead/world/raycast.hpp>
 
 #include <glad/gl.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hewnstead/line_vertex.hpp>
+#include <hewnstead/render/line_vertex.hpp>
 
 #include <span>
 

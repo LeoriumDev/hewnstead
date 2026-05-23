@@ -1,5 +1,5 @@
-#include <hewnstead/chunk.hpp>
-#include <hewnstead/mesher.hpp>
+#include <hewnstead/render/mesher.hpp>
+#include <hewnstead/world/chunk.hpp>
 
 #include <doctest/doctest.h>
 #include <glm/glm.hpp>

@@ -1,5 +1,5 @@
-#include <hewnstead/camera.hpp>
-#include <hewnstead/input.hpp>
+#include <hewnstead/core/input.hpp>
+#include <hewnstead/render/camera.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
