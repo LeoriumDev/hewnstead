@@ -41,7 +41,7 @@ constexpr BlockId Grass = 5;
     case blocks::Grass:
         return "Grass";
     default:
-        return "?";
+        return "(null)";
     }
 }
 

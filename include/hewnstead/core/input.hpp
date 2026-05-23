@@ -6,8 +6,6 @@
 
 namespace hs {
 
-class ImguiRuntime;
-
 class Input {
 public:
     void update(GLFWwindow* window);
@@ -27,10 +25,14 @@ public:
     [[nodiscard]] double mouseDx() const { return m_mouseDx; }
     [[nodiscard]] double mouseDy() const { return m_mouseDy; }
 
-    void connectImguiRuntime(const ImguiRuntime* runtime) { m_imgui = runtime; }
-    [[nodiscard]] bool imguiWantsKeyboard() const;
-    [[nodiscard]] bool imguiWantsMouse() const;
+    [[nodiscard]] bool uiWantsKeyboard() const { return m_uiWantsKeyboard; };
+    [[nodiscard]] bool uiWantsMouse() const { return m_uiWantsMouse; };
     void resetMouseBaseline() { m_firstMouse = true; }
+
+    void setUiCapture(bool mouse, bool keyboard) {
+        m_uiWantsMouse = mouse;
+        m_uiWantsKeyboard = keyboard;
+    }
 
 private:
     std::array<bool, GLFW_KEY_LAST + 1> m_keysNow{};
@@ -46,7 +48,8 @@ private:
 
     bool m_firstMouse = true;
 
-    const ImguiRuntime* m_imgui = nullptr;
+    bool m_uiWantsMouse = false;
+    bool m_uiWantsKeyboard = false;
 };
 
 }  // namespace hs

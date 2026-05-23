@@ -155,7 +155,7 @@ Window::Window(int width, int height, std::string_view title) {
 
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);
-    setCursorMode(false);
+    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwGetFramebufferSize(m_window, &m_fbWidth, &m_fbHeight);
     glViewport(0, 0, m_fbWidth, m_fbHeight);
@@ -226,10 +226,6 @@ void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int
         return;
     }
     self->m_input->onMouseButtonEvent(button, action);
-}
-
-void Window::setCursorMode(bool visible) {
-    glfwSetInputMode(m_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
 
 }  // namespace hs

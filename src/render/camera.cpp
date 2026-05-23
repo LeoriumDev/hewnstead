@@ -44,7 +44,7 @@ glm::mat4 Camera::viewMatrix() const {
 }
 
 void Camera::update(const Input& input, float dt) {
-    if (input.imguiWantsKeyboard()) {
+    if (input.uiWantsKeyboard()) {
         return;
     }
 

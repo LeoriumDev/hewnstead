@@ -27,10 +27,6 @@ public:
     void toggleFullscreen();
     void requestClose();
     void attachInput(Input* input);
-    void setCursorMode(bool visible);
-    void setWireframe(bool);  // GL_LINE, GL_FILL, GL_POINT
-    void setVSync(bool);      // enum -1 adaptive 1 enable 0 disable
-    void recenterCursor();
 
     // Framebuffer (pixels)
     [[nodiscard]] int framebufferWidth() const { return m_fbWidth; }

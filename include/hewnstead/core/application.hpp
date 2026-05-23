@@ -37,7 +37,7 @@ public:
 
 private:
     void update(float dt);
-    void render(float dt);
+    void render();
 
     // Declaration order IS construction order.
     // Window first: it creates the GL context every later GL-touching member depends on.
@@ -69,6 +69,11 @@ private:
     const char* m_targetBlockName = nullptr;
     double m_lastFrameTime = 0.0;
     std::optional<glm::ivec3> m_lastOutlineCell;
+
+    // Frame stats
+    float m_fps = 0.0F;
+    float m_fpsAccumDt = 0.0F;
+    int m_fpsFrameCount = 0;
 
     // MSAA sample query
     GLuint m_sampleQuery = 0;

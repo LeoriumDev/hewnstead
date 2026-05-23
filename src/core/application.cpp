@@ -35,6 +35,8 @@ constexpr std::array<std::string_view, 7> TEXTURE_PATHS = {
     "assets/textures/blocks/grass_side.png",  // layer 6
 };
 
+constexpr float FPS_SAMPLE_INTERVAL = 0.5F;
+
 void setupGlState() {
     // Enable depth test (nearest wins)
     glEnable(GL_DEPTH_TEST);
@@ -81,23 +83,20 @@ void handleBlockHotkeys(const hs::Input& input, hs::BlockId& selectedBlock) {
     }
 }
 
-void handleSpecialKeys(hs::Input& input, hs::Window& window, bool& overlayVisible) {
+void handleSpecialKeys(hs::Input& input,
+                       hs::Window& window,
+                       bool& overlayVisible,
+                       bool& wireframe) {
     if (input.justPressed(GLFW_KEY_ESCAPE)) {
         window.requestClose();
     }
 
+    if (input.justPressed(GLFW_KEY_F4)) {
+        wireframe = !wireframe;
+    }
+
     if (input.justPressed(GLFW_KEY_F3)) {
         overlayVisible = !overlayVisible;
-        window.setCursorMode(overlayVisible);
-
-        if (overlayVisible) {
-            int w = 0;
-            int h = 0;
-            glfwGetWindowSize(window.raw(), &w, &h);
-            constexpr double CENTER = 0.5;
-            glfwSetCursorPos(window.raw(), w * CENTER, h * CENTER);
-        }
-
         input.clearKeys();
         input.resetMouseBaseline();
     }
@@ -106,21 +105,6 @@ void handleSpecialKeys(hs::Input& input, hs::Window& window, bool& overlayVisibl
         (input.isDown(GLFW_KEY_LEFT_ALT) || input.isDown(GLFW_KEY_RIGHT_ALT))) {
         window.toggleFullscreen();
     }
-}
-
-void drawDebugUi(const hs::ChunkMesh& mesh,
-                 GLuint64 samplesPassed,
-                 GLint actualSamples,
-                 bool& wireframe) {
-    ImGui::Begin("Debug");
-    ImGui::Text("Vertices: %d", mesh.vertexCount());
-    ImGui::Text("Triangles: %d", mesh.vertexCount() / 3);
-    ImGui::Text("Samples: %llu (~%llu px @ MSAA %dx)",
-                samplesPassed,
-                samplesPassed / static_cast<GLuint64>(actualSamples),
-                actualSamples);
-    ImGui::Checkbox("Wireframe", &wireframe);
-    ImGui::End();
 }
 
 void renderScene(const hs::Shader& shader,
@@ -161,9 +145,8 @@ void renderScene(const hs::Shader& shader,
 
 void handleBreakBlock(const hs::Input& input,
                       hs::Chunk& chunk,
-                      const std::optional<hs::RaycastHit>& lookingAt,
-                      bool overlayVisible) {
-    if (overlayVisible || !input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || !lookingAt) {
+                      const std::optional<hs::RaycastHit>& lookingAt) {
+    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || !lookingAt) {
         return;
     }
     chunk.set(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z, hs::blocks::Air);
@@ -172,9 +155,8 @@ void handleBreakBlock(const hs::Input& input,
 void handlePlaceBlock(const hs::Input& input,
                       hs::Chunk& chunk,
                       const std::optional<hs::RaycastHit>& lookingAt,
-                      hs::BlockId selectedBlock,
-                      bool overlayVisible) {
-    if (overlayVisible || !input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || !lookingAt ||
+                      hs::BlockId selectedBlock) {
+    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || !lookingAt ||
         !lookingAt->face) {  // inside-block hit, reject place
         return;
     }
@@ -190,6 +172,19 @@ void handlePlaceBlock(const hs::Input& input,
         return;
     }
     chunk.set(placeCell.x, placeCell.y, placeCell.z, selectedBlock);
+}
+
+void handlePickBlock(const hs::Input& input,
+                     hs::Chunk& chunk,
+                     const std::optional<hs::RaycastHit>& lookingAt,
+                     hs::BlockId& selectedBlock) {
+    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_MIDDLE) || !lookingAt) {
+        return;
+    }
+    BlockId target = chunk.getOrAir(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z);
+    if (target != blocks::Air) {
+        selectedBlock = target;
+    }
 }
 
 void remeshIfDirty(hs::Chunk& chunk, hs::ChunkMesh& chunkMesh) {
@@ -239,11 +234,7 @@ cubeOutlineVertices(const glm::ivec3& cell, const glm::vec3& color) {
     return out;
 }
 
-void drawCrosshair(bool overlayVisible) {
-    if (overlayVisible) {
-        return;
-    }
-
+void drawCrosshair() {
     ImDrawList* drawList = ImGui::GetForegroundDrawList();
     ImVec2 center = ImGui::GetIO().DisplaySize;
     center.x /= 2;
@@ -283,7 +274,6 @@ Application::Application()
 
     m_window.attachInput(&m_input);
     m_imgui.emplace(m_window);
-    m_input.connectImguiRuntime(&*m_imgui);
 
     setupGlState();
 
@@ -310,16 +300,28 @@ void Application::run() {
         m_lastFrameTime = now;
 
         update(dt);
-        render(dt);
+        render();
         m_window.swapBuffers();
     }
 }
 
 void Application::update(float dt) {
+    // Frame stats
+    if (dt > 0.0F) {
+        m_fpsAccumDt += dt;
+        ++m_fpsFrameCount;
+        if (m_fpsAccumDt >= FPS_SAMPLE_INTERVAL) {
+            m_fps = static_cast<float>(m_fpsFrameCount) / m_fpsAccumDt;
+            m_fpsAccumDt = 0.0F;
+            m_fpsFrameCount = 0;
+        }
+    }
+
     // Input
     m_input.update(m_window.raw());
     m_window.pollEvents();
-    handleSpecialKeys(m_input, m_window, m_overlayVisible);
+    m_input.setUiCapture(m_imgui->wantCaptureMouse(), m_imgui->wantCaptureKeyboard());
+    handleSpecialKeys(m_input, m_window, m_overlayVisible, m_wireframe);
     handleBlockHotkeys(m_input, m_selectedBlock);
 
     // Simulation
@@ -332,6 +334,8 @@ void Application::update(float dt) {
             auto outline = cubeOutlineVertices(m_lookingAt->cell, OUTLINE_COLOR);
             m_lineMesh.upload(std::span{outline});
             m_lastOutlineCell = m_lookingAt->cell;
+            m_targetBlockName = blockName(
+                m_chunk->getOrAir(m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z));
         }
     } else if (m_lastOutlineCell) {
         m_lineMesh.upload(std::span<const LineVertex>{});
@@ -339,20 +343,33 @@ void Application::update(float dt) {
     }
 
     // Block interaction
-    handleBreakBlock(m_input, *m_chunk, m_lookingAt, m_overlayVisible);
-    handlePlaceBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock, m_overlayVisible);
+    handleBreakBlock(m_input, *m_chunk, m_lookingAt);
+    handlePlaceBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock);
+    handlePickBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock);
     remeshIfDirty(*m_chunk, m_chunkMesh);
 }
 
-void Application::render(float dt) {
+void Application::render() {
     // UI
     m_imgui->beginFrame();
 
-    drawCameraHud(m_camera, dt, m_lookingAt, m_targetBlockName, m_selectedBlock);
-    if (m_overlayVisible) {
-        drawDebugUi(m_chunkMesh, m_samplesPassed, m_actualSamples, m_wireframe);
-    }
-    drawCrosshair(m_overlayVisible);
+    const HudInfo hud{
+        .cameraPos = m_camera.position(),
+        .selectedBlock = m_selectedBlock,
+        .fps = m_fps,
+    };
+    const DebugInfo debug{
+        .yaw = m_camera.yaw(),
+        .pitch = m_camera.pitch(),
+        .vertexCount = m_chunkMesh.vertexCount(),
+        .samplesPassed = m_samplesPassed,
+        .actualSamples = m_actualSamples,
+        .lookingAt = m_lookingAt,
+        .targetBlockName = m_targetBlockName,
+    };
+    drawHud(hud, debug, m_overlayVisible);
+
+    drawCrosshair();
 
     // Scene
     glBeginQuery(GL_SAMPLES_PASSED, m_sampleQuery);

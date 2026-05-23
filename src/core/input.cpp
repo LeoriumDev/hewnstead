@@ -1,5 +1,4 @@
 #include <hewnstead/core/input.hpp>
-#include <hewnstead/render/imgui_runtime.hpp>
 
 namespace hs {
 
@@ -21,7 +20,7 @@ void Input::update(GLFWwindow* window) {
     double curY;
     glfwGetCursorPos(window, &curX, &curY);
 
-    if (m_imgui != nullptr && m_imgui->wantCaptureMouse()) {
+    if (m_uiWantsMouse) {
         m_mouseDx = 0.0;
         m_mouseDy = 0.0;
         m_mouseXPrev = curX;
@@ -110,14 +109,6 @@ bool Input::mouseJustReleased(int button) const {
         return false;
     }
     return !m_mouseNow[toIdx(button)] && m_mousePrev[toIdx(button)];
-}
-
-bool Input::imguiWantsKeyboard() const {
-    return (m_imgui != nullptr) ? m_imgui->wantCaptureKeyboard() : false;
-}
-
-bool Input::imguiWantsMouse() const {
-    return (m_imgui != nullptr) ? m_imgui->wantCaptureMouse() : false;
 }
 
 }  // namespace hs
