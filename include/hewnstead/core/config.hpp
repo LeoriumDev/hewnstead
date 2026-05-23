@@ -1,6 +1,15 @@
 #pragma once
 
+#include <string_view>
+
 namespace hs::config {
+
+constexpr std::string_view TITLE = "Hewnstead";
+
+constexpr std::string_view CHUNK_VERTEX_SHADER_PATH = "assets/shaders/chunk.vert";
+constexpr std::string_view CHUNK_FRAGMENT_SHADER_PATH = "assets/shaders/chunk.frag";
+constexpr std::string_view LINE_VERTEX_SHADER_PATH = "assets/shaders/line.vert";
+constexpr std::string_view LINE_FRAGMENT_SHADER_PATH = "assets/shaders/line.frag";
 
 // Window
 constexpr int WINDOW_WIDTH = 1280;
