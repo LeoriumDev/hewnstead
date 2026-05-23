@@ -161,8 +161,9 @@ void renderScene(const hs::Shader& shader,
 
 void handleBreakBlock(const hs::Input& input,
                       hs::Chunk& chunk,
-                      const std::optional<hs::RaycastHit>& lookingAt) {
-    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || input.imguiWantsMouse() || !lookingAt) {
+                      const std::optional<hs::RaycastHit>& lookingAt,
+                      bool overlayVisible) {
+    if (overlayVisible || !input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || !lookingAt) {
         return;
     }
     chunk.set(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z, hs::blocks::Air);
@@ -171,8 +172,9 @@ void handleBreakBlock(const hs::Input& input,
 void handlePlaceBlock(const hs::Input& input,
                       hs::Chunk& chunk,
                       const std::optional<hs::RaycastHit>& lookingAt,
-                      hs::BlockId selectedBlock) {
-    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || input.imguiWantsMouse() || !lookingAt ||
+                      hs::BlockId selectedBlock,
+                      bool overlayVisible) {
+    if (overlayVisible || !input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || !lookingAt ||
         !lookingAt->face) {  // inside-block hit, reject place
         return;
     }
@@ -184,7 +186,6 @@ void handlePlaceBlock(const hs::Input& input,
     if (!inBounds) {
         return;
     }
-
     if (chunk.getOrAir(placeCell.x, placeCell.y, placeCell.z) != hs::blocks::Air) {
         return;
     }
@@ -338,8 +339,8 @@ void Application::update(float dt) {
     }
 
     // Block interaction
-    handleBreakBlock(m_input, *m_chunk, m_lookingAt);
-    handlePlaceBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock);
+    handleBreakBlock(m_input, *m_chunk, m_lookingAt, m_overlayVisible);
+    handlePlaceBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock, m_overlayVisible);
     remeshIfDirty(*m_chunk, m_chunkMesh);
 }
 
