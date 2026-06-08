@@ -9,6 +9,7 @@
 #include <hewnstead/render/shader.hpp>
 #include <hewnstead/render/texture_array.hpp>
 #include <hewnstead/world/block_id.hpp>
+#include <hewnstead/world/chunk_coord.hpp>
 #include <hewnstead/world/chunk_manager.hpp>
 #include <hewnstead/world/raycast.hpp>
 
@@ -18,6 +19,7 @@
 
 #include <memory>
 #include <optional>
+#include <unordered_map>
 
 namespace hs {
 
@@ -53,8 +55,10 @@ private:
     std::optional<ImguiRuntime> m_imgui;
 
     // GPU objects
-    ChunkMesh m_chunkMesh;
+    std::unordered_map<ChunkCoord, ChunkMesh> m_chunkMesh;
     LineMesh m_lineMesh;
+
+    void rebuildChunkMesh(ChunkCoord coord);
 
     // Single-chunk world
     std::shared_ptr<Chunk> m_chunk;

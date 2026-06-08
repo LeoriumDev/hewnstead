@@ -11,6 +11,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <spdlog/fmt/bundled/format.h>
 
 #include <algorithm>
 #include <array>
@@ -18,6 +19,8 @@
 #include <span>
 #include <stdexcept>
 #include <string_view>
+
+#include "spdlog/spdlog.h"
 
 namespace hs {
 
@@ -108,7 +111,7 @@ void handleSpecialKeys(hs::Input& input,
 }
 
 void renderScene(const hs::Shader& shader,
-                 const hs::ChunkMesh& mesh,
+                 const std::unordered_map<hs::ChunkCoord, hs::ChunkMesh>& meshes,
                  const hs::Camera& camera,
                  const hs::TextureArray& blockTextures,
                  float aspect,
@@ -118,7 +121,6 @@ void renderScene(const hs::Shader& shader,
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
-    auto model = glm::mat4(1.0F);
     glm::mat4 view = camera.viewMatrix();
     glm::mat4 projection = glm::perspective(glm::radians(hs::config::FOV_DEGREES),
                                             aspect,
@@ -126,17 +128,21 @@ void renderScene(const hs::Shader& shader,
                                             hs::config::FAR_PLANE);
 
     shader.use();
-    shader.setMat4("u_model", model);
     shader.setMat4("u_view", view);
     shader.setMat4("u_projection", projection);
     shader.setInt("u_blockTextures", 0);
-
     blockTextures.bind(0);
-    mesh.draw();
+
+    for (const auto& [coord, mesh] : meshes) {
+        const glm::vec3 origin = glm::vec3(hs::ChunkManager::chunkToWorld(coord));
+        const glm::mat4 model = glm::translate(glm::mat4(1.0F), origin);
+        shader.setMat4("u_model", model);
+        mesh.draw();
+    }
 
     if (lineMesh.vertexCount() > 0) {
         lineShader.use();
-        lineShader.setMat4("u_model", model);
+        lineShader.setMat4("u_model", glm::mat4(1.0F));
         lineShader.setMat4("u_view", view);
         lineShader.setMat4("u_projection", projection);
         lineMesh.draw();
@@ -187,14 +193,14 @@ void handlePickBlock(const hs::Input& input,
     }
 }
 
-void remeshIfDirty(hs::Chunk& chunk, hs::ChunkMesh& chunkMesh) {
-    if (!chunk.isDirty()) {
-        return;
-    }
-    const auto vertices = hs::mesher::buildMesh(chunk);
-    chunkMesh.upload(vertices);
-    chunk.clearDirty();
-}
+// void remeshIfDirty(hs::Chunk& chunk, hs::ChunkMesh& chunkMesh) {
+//     if (!chunk.isDirty()) {
+//         return;
+//     }
+//     const auto vertices = hs::mesher::buildMesh(chunk);
+//     chunkMesh.upload(vertices);
+//     chunk.clearDirty();
+// }
 
 std::array<hs::LineVertex, hs::config::CUBE_OUTLINE_VERTEX_COUNT>
 cubeOutlineVertices(const glm::ivec3& cell, const glm::vec3& color) {
@@ -255,22 +261,41 @@ Application::Application()
       m_chunkShader(config::CHUNK_VERTEX_SHADER_PATH, config::CHUNK_FRAGMENT_SHADER_PATH),
       m_lineShader(config::LINE_VERTEX_SHADER_PATH, config::LINE_FRAGMENT_SHADER_PATH),
       m_blockTextures(TEXTURE_PATHS) {
-    m_chunk = m_chunkManager.loadChunk({.x = 0, .y = 0, .z = 0});
-    if (m_chunk == nullptr) {
-        throw std::runtime_error("Failed to load initial chunk");
-    }
 
-    for (int z = 0; z < Chunk::SIZE; ++z) {
-        for (int x = 0; x < Chunk::SIZE; ++x) {
-            m_chunk->set(x, 0, z, blocks::Log);
-            m_chunk->set(x, 5, z, blocks::Dirt);
-            m_chunk->set(x, 10, z, blocks::Planks);
-            m_chunk->set(x, 15, z, blocks::Grass);
-            m_chunk->set(x, 20, z, blocks::Stone);
+    for (int cz = -1; cz <= 1; cz++) {
+        for (int cy = -1; cy <= 1; cy++) {
+            for (int cx = -1; cx <= 1; cx++) {
+                const ChunkCoord coord{.x = cx, .y = cy, .z = cz};
+                const std::shared_ptr<Chunk> chunk = m_chunkManager.loadChunk(coord);
+                if (chunk == nullptr) {
+                    throw std::runtime_error(
+                        fmt::format("Failed to load chunk at ({}, {}, {})", cx, cy, cz));
+                }
+                for (int z = 0; z < Chunk::SIZE; ++z) {
+                    for (int y = 0; y < Chunk::SIZE; ++y) {
+                        for (int x = 0; x < Chunk::SIZE; ++x) {
+                            chunk->set(x, y, z, blocks::Stone);
+                        }
+                    }
+                }
+            }
         }
     }
 
-    m_chunkMesh.upload(mesher::buildMesh(*m_chunk));
+    spdlog::info("ChunkCount: {}", m_chunkManager.chunkCount());
+
+    m_chunk = m_chunkManager.getChunk({.x = 0, .y = 0, .z = 0});
+    if (m_chunk == nullptr) {
+        throw std::runtime_error("Failed to load origin chunk");
+    }
+
+    for (int cz = -1; cz <= 1; cz++) {
+        for (int cy = -1; cy <= 1; cy++) {
+            for (int cx = -1; cx <= 1; cx++) {
+                rebuildChunkMesh({.x = cx, .y = cy, .z = cz});
+            }
+        }
+    }
 
     m_window.attachInput(&m_input);
     m_imgui.emplace(m_window);
@@ -346,7 +371,10 @@ void Application::update(float dt) {
     handleBreakBlock(m_input, *m_chunk, m_lookingAt);
     handlePlaceBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock);
     handlePickBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock);
-    remeshIfDirty(*m_chunk, m_chunkMesh);
+    if (m_chunk->isDirty()) {
+        rebuildChunkMesh({.x = 0, .y = 0, .z = 0});
+        m_chunk->clearDirty();
+    }
 }
 
 void Application::render() {
@@ -358,10 +386,21 @@ void Application::render() {
         .selectedBlock = m_selectedBlock,
         .fps = m_fps,
     };
+    auto vertexCount = [this]() -> int {
+        int total = 0;
+        for (int cz = -1; cz <= 1; cz++) {
+            for (int cy = -1; cy <= 1; cy++) {
+                for (int cx = -1; cx <= 1; cx++) {
+                    total += m_chunkMesh[{.x = cx, .y = cy, .z = cz}].vertexCount();
+                }
+            }
+        }
+        return total;
+    };
     const DebugInfo debug{
         .yaw = m_camera.yaw(),
         .pitch = m_camera.pitch(),
-        .vertexCount = m_chunkMesh.vertexCount(),
+        .vertexCount = vertexCount(),
         .samplesPassed = m_samplesPassed,
         .actualSamples = m_actualSamples,
         .lookingAt = m_lookingAt,
@@ -385,6 +424,16 @@ void Application::render() {
     glGetQueryObjectui64v(m_sampleQuery, GL_QUERY_RESULT, &m_samplesPassed);
 
     m_imgui->endFrame();
+}
+
+void Application::rebuildChunkMesh(ChunkCoord coord) {
+    const std::shared_ptr<Chunk> chunk = m_chunkManager.getChunk(coord);
+    if (chunk == nullptr) {
+        throw std::runtime_error(
+            fmt::format("Failed to load chunk at ({}, {}, {})", coord.x, coord.y, coord.z));
+    }
+    auto vertices = mesher::buildMesh(*chunk);
+    m_chunkMesh[coord].upload(vertices);
 }
 
 }  // namespace hs

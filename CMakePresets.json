@@ -5,7 +5,6 @@
         "minor": 28,
         "patch": 0
     },
-
     "configurePresets": [
         {
             "name": "base",
@@ -16,7 +15,6 @@
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
         },
-
         {
             "name": "macos-debug",
             "inherits": "base",
@@ -33,7 +31,16 @@
                 "CMAKE_C_COMPILER": "/usr/bin/clang"
             }
         },
-
+        {
+            "name": "macos-sanitize",
+            "inherits": "macos-debug",
+            "displayName": "macOS Sanitize (ASan + UBSan)",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all",
+                "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all",
+                "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+            }
+        },
         {
             "name": "macos-release",
             "inherits": "base",
@@ -50,7 +57,6 @@
                 "CMAKE_C_COMPILER": "/usr/bin/clang"
             }
         },
-
         {
             "name": "linux-debug",
             "inherits": "base",
@@ -66,7 +72,6 @@
                 "CMAKE_C_COMPILER": "clang"
             }
         },
-
         {
             "name": "windows-debug",
             "inherits": "base",
@@ -84,20 +89,55 @@
             }
         }
     ],
-
     "buildPresets": [
-        { "name": "macos-debug",   "configurePreset": "macos-debug",   "jobs": 0 },
-        { "name": "macos-release", "configurePreset": "macos-release", "jobs": 0 },
-        { "name": "linux-debug",   "configurePreset": "linux-debug",   "jobs": 0 },
-        { "name": "windows-debug", "configurePreset": "windows-debug", "jobs": 0 }
+        {
+            "name": "macos-debug",
+            "configurePreset": "macos-debug",
+            "jobs": 0
+        },
+        {
+            "name": "macos-release",
+            "configurePreset": "macos-release",
+            "jobs": 0
+        },
+        {
+            "name": "macos-sanitize",
+            "configurePreset": "macos-sanitize",
+            "jobs": 0
+        },
+        {
+            "name": "linux-debug",
+            "configurePreset": "linux-debug",
+            "jobs": 0
+        },
+        {
+            "name": "windows-debug",
+            "configurePreset": "windows-debug",
+            "jobs": 0
+        }
     ],
-
     "testPresets": [
         {
             "name": "macos-debug",
             "configurePreset": "macos-debug",
-            "output": { "outputOnFailure": true },
-            "execution": { "noTestsAction": "error", "stopOnFailure": false }
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": false
+            }
+        },
+        {
+            "name": "macos-sanitize",
+            "configurePreset": "macos-sanitize",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": false
+            }
         }
     ]
 }
