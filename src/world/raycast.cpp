@@ -10,10 +10,19 @@ namespace {
 
 constexpr float FLOAT_INFINITY = std::numeric_limits<float>::infinity();
 
+BlockId blockAtWorld(const ChunkManager& cm, int wx, int wy, int wz) {
+    ChunkCoord coord = hs::ChunkManager::worldToChunk(wx, wy, wz);
+    std::shared_ptr<Chunk> chunk = cm.getChunk(coord);
+    if (!chunk) {
+        return blocks::Air;
+    }
+    glm::ivec3 local = hs::ChunkManager::worldToLocal(wx, wy, wz);
+    return chunk->get(local.x, local.y, local.z);
+}
 }  // namespace
 
 std::optional<RaycastHit>  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-raycast(const Chunk& chunk, glm::vec3 origin, glm::vec3 direction, float maxDistance) {
+raycast(const ChunkManager& cm, glm::vec3 origin, glm::vec3 direction, float maxDistance) {
     // Integer voxel index containing origin
     int X = static_cast<int>(std::floor(origin.x));
     int Y = static_cast<int>(std::floor(origin.y));
@@ -44,7 +53,7 @@ raycast(const Chunk& chunk, glm::vec3 origin, glm::vec3 direction, float maxDist
     // Origin is inside a solid block. No entry face exists since the ray
     // didn't cross a boundary into this cell. face = nullopt signals this
     // to caller; place logic rejects, break logic still allows.
-    if (chunk.getOrAir(X, Y, Z) != blocks::Air) {
+    if (blockAtWorld(cm, X, Y, Z) != blocks::Air) {
         return RaycastHit{.cell = glm::ivec3{X, Y, Z}, .face = std::nullopt, .distance = 0.0F};
     }
 
@@ -78,7 +87,7 @@ raycast(const Chunk& chunk, glm::vec3 origin, glm::vec3 direction, float maxDist
         }
 
         // Termination: Hit
-        if (chunk.getOrAir(X, Y, Z) != blocks::Air) {
+        if (blockAtWorld(cm, X, Y, Z) != blocks::Air) {
             return RaycastHit{.cell = glm::ivec3{X, Y, Z}, .face = hitFace, .distance = t};
         }
     }

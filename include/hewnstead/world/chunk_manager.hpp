@@ -24,7 +24,7 @@ public:
     // Lifecycle
     std::shared_ptr<Chunk> loadChunk(ChunkCoord c);
     void unloadChunk(ChunkCoord c);
-    [[nodiscard]] std::shared_ptr<Chunk> getChunk(ChunkCoord c);
+    [[nodiscard]] std::shared_ptr<Chunk> getChunk(ChunkCoord c) const;
     [[nodiscard]] std::size_t chunkCount() const;
 
     // World-coord conversion

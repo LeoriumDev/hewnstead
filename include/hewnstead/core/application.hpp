@@ -60,9 +60,6 @@ private:
 
     void rebuildChunkMesh(ChunkCoord coord);
 
-    // Single-chunk world
-    std::shared_ptr<Chunk> m_chunk;
-
     // Per-frame view of what the camera is pointed at
     std::optional<RaycastHit> m_lookingAt;
 

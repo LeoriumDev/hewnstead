@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hewnstead/world/chunk_manager.hpp>
 #include <hewnstead/world/face.hpp>
 
 #include <glm/vec3.hpp>
@@ -18,6 +19,6 @@ struct RaycastHit {
 
 // To get real-world distance, make sure direction's length is 1 (normalized).
 [[nodiscard]] std::optional<RaycastHit>
-raycast(const Chunk& chunk, glm::vec3 origin, glm::vec3 direction, float maxDistance);
+raycast(const ChunkManager&, glm::vec3 origin, glm::vec3 direction, float maxDistance);
 
 }  // namespace hs

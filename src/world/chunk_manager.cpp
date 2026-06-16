@@ -26,7 +26,7 @@ void ChunkManager::unloadChunk(ChunkCoord c) {
     m_chunks.erase(c);
 }
 
-std::shared_ptr<Chunk> ChunkManager::getChunk(ChunkCoord c) {
+std::shared_ptr<Chunk> ChunkManager::getChunk(ChunkCoord c) const {
     auto it = m_chunks.find(c);
     return it != m_chunks.end() ? it->second : nullptr;
 }

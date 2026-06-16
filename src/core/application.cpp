@@ -150,44 +150,82 @@ void renderScene(const hs::Shader& shader,
 }
 
 void handleBreakBlock(const hs::Input& input,
-                      hs::Chunk& chunk,
+                      hs::ChunkManager& cm,
                       const std::optional<hs::RaycastHit>& lookingAt) {
     if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || !lookingAt) {
         return;
     }
-    chunk.set(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z, hs::blocks::Air);
+    const glm::ivec3 cell = lookingAt->cell;
+    const std::shared_ptr<hs::Chunk> chunk =
+        cm.getChunk(hs::ChunkManager::worldToChunk(cell.x, cell.y, cell.z));
+    if (!chunk) {
+        return;
+    }
+    const glm::ivec3 local = hs::ChunkManager::worldToLocal(cell.x, cell.y, cell.z);
+    chunk->set(local.x, local.y, local.z, hs::blocks::Air);
+
+    // Border edit: the neighbor chunk's facing surface may need re-meshing.
+    const auto coord = hs::ChunkManager::worldToChunk(cell.x, cell.y, cell.z);
+    constexpr int MAX = hs::Chunk::SIZE - 1;
+    if (local.x == 0) {
+        if (auto n = cm.getChunk({.x = coord.x - 1, .y = coord.y, .z = coord.z}))
+            n->makeDirty();
+    }
+    if (local.x == MAX) {
+        if (auto n = cm.getChunk({.x = coord.x + 1, .y = coord.y, .z = coord.z}))
+            n->makeDirty();
+    }
+    if (local.y == 0) {
+        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y - 1, .z = coord.z}))
+            n->makeDirty();
+    }
+    if (local.y == MAX) {
+        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y + 1, .z = coord.z}))
+            n->makeDirty();
+    }
+    if (local.z == 0) {
+        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y, .z = coord.z - 1}))
+            n->makeDirty();
+    }
+    if (local.z == MAX) {
+        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y, .z = coord.z + 1}))
+            n->makeDirty();
+    }
 }
 
 void handlePlaceBlock(const hs::Input& input,
-                      hs::Chunk& chunk,
+                      hs::ChunkManager& cm,
                       const std::optional<hs::RaycastHit>& lookingAt,
                       hs::BlockId selectedBlock) {
-    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || !lookingAt ||
-        !lookingAt->face) {  // inside-block hit, reject place
+    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || !lookingAt || !lookingAt->face) {
         return;
     }
-    glm::ivec3 placeCell = lookingAt->cell + hs::faceNormal(*lookingAt->face);
-
-    bool inBounds = placeCell.x >= 0 && placeCell.x < hs::Chunk::SIZE && placeCell.y >= 0 &&
-                    placeCell.y < hs::Chunk::SIZE && placeCell.z >= 0 &&
-                    placeCell.z < hs::Chunk::SIZE;
-    if (!inBounds) {
+    const glm::ivec3 placeCell = lookingAt->cell + hs::faceNormal(*lookingAt->face);
+    const std::shared_ptr<hs::Chunk> chunk =
+        cm.getChunk(hs::ChunkManager::worldToChunk(placeCell.x, placeCell.y, placeCell.z));
+    if (!chunk) {
         return;
     }
-    if (chunk.getOrAir(placeCell.x, placeCell.y, placeCell.z) != hs::blocks::Air) {
-        return;
+    const glm::ivec3 local = hs::ChunkManager::worldToLocal(placeCell.x, placeCell.y, placeCell.z);
+    if (chunk->get(local.x, local.y, local.z) != hs::blocks::Air) {
+        return;  // occupied, don't place
     }
-    chunk.set(placeCell.x, placeCell.y, placeCell.z, selectedBlock);
+    chunk->set(local.x, local.y, local.z, selectedBlock);
 }
 
 void handlePickBlock(const hs::Input& input,
-                     hs::Chunk& chunk,
+                     hs::ChunkManager& cm,
                      const std::optional<hs::RaycastHit>& lookingAt,
                      hs::BlockId& selectedBlock) {
     if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_MIDDLE) || !lookingAt) {
         return;
     }
-    BlockId target = chunk.getOrAir(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z);
+    const std::shared_ptr<hs::Chunk> chunk = cm.getChunk(
+        hs::ChunkManager::worldToChunk(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z));
+    if (!chunk) {
+        return;
+    }
+    BlockId target = chunk->getOrAir(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z);
     if (target != blocks::Air) {
         selectedBlock = target;
     }
@@ -275,11 +313,6 @@ Application::Application()
 
     spdlog::info("ChunkCount: {}", m_chunkManager.chunkCount());
 
-    m_chunk = m_chunkManager.getChunk({.x = 0, .y = 0, .z = 0});
-    if (m_chunk == nullptr) {
-        throw std::runtime_error("Failed to load origin chunk");
-    }
-
     for (int cz = -1; cz <= 1; cz++) {
         for (int cy = -1; cy <= 1; cy++) {
             for (int cx = -1; cx <= 1; cx++) {
@@ -344,14 +377,18 @@ void Application::update(float dt) {
     m_camera.update(m_input, dt);
 
     // Targeting
-    m_lookingAt = raycast(*m_chunk, m_camera.position(), m_camera.forward(), config::MAX_REACH);
+    m_lookingAt =
+        raycast(m_chunkManager, m_camera.position(), m_camera.forward(), config::MAX_REACH);
     if (m_lookingAt && m_lookingAt->face) {
         if (!m_lastOutlineCell || *m_lastOutlineCell != m_lookingAt->cell) {
             auto outline = cubeOutlineVertices(m_lookingAt->cell, OUTLINE_COLOR);
             m_lineMesh.upload(std::span{outline});
             m_lastOutlineCell = m_lookingAt->cell;
             m_targetBlockName = blockName(
-                m_chunk->getOrAir(m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z));
+                m_chunkManager
+                    .getChunk(ChunkManager::worldToChunk(
+                        m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z))
+                    ->getOrAir(m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z));
         }
     } else if (m_lastOutlineCell) {
         m_lineMesh.upload(std::span<const LineVertex>{});
@@ -359,12 +396,19 @@ void Application::update(float dt) {
     }
 
     // Block interaction
-    handleBreakBlock(m_input, *m_chunk, m_lookingAt);
-    handlePlaceBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock);
-    handlePickBlock(m_input, *m_chunk, m_lookingAt, m_selectedBlock);
-    if (m_chunk->isDirty()) {
-        rebuildChunkMesh({.x = 0, .y = 0, .z = 0});
-        m_chunk->clearDirty();
+    handleBreakBlock(m_input, m_chunkManager, m_lookingAt);
+    handlePlaceBlock(m_input, m_chunkManager, m_lookingAt, m_selectedBlock);
+    handlePickBlock(m_input, m_chunkManager, m_lookingAt, m_selectedBlock);
+    for (int cz = -1; cz <= 1; cz++) {
+        for (int cy = -1; cy <= 1; cy++) {
+            for (int cx = -1; cx <= 1; cx++) {
+                auto chunk = m_chunkManager.getChunk({.x = cx, .y = cy, .z = cz});
+                if (chunk && chunk->isDirty()) {
+                    rebuildChunkMesh({.x = cx, .y = cy, .z = cz});
+                    chunk->clearDirty();
+                }
+            }
+        }
     }
 }
 
