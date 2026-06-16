@@ -193,15 +193,6 @@ void handlePickBlock(const hs::Input& input,
     }
 }
 
-// void remeshIfDirty(hs::Chunk& chunk, hs::ChunkMesh& chunkMesh) {
-//     if (!chunk.isDirty()) {
-//         return;
-//     }
-//     const auto vertices = hs::mesher::buildMesh(chunk);
-//     chunkMesh.upload(vertices);
-//     chunk.clearDirty();
-// }
-
 std::array<hs::LineVertex, hs::config::CUBE_OUTLINE_VERTEX_COUNT>
 cubeOutlineVertices(const glm::ivec3& cell, const glm::vec3& color) {
     const auto base = glm::vec3{cell};
@@ -427,12 +418,21 @@ void Application::render() {
 }
 
 void Application::rebuildChunkMesh(ChunkCoord coord) {
-    const std::shared_ptr<Chunk> chunk = m_chunkManager.getChunk(coord);
-    if (chunk == nullptr) {
+    const std::shared_ptr<Chunk> center = m_chunkManager.getChunk(coord);
+    if (center == nullptr) {
         throw std::runtime_error(
             fmt::format("Failed to load chunk at ({}, {}, {})", coord.x, coord.y, coord.z));
     }
-    auto vertices = mesher::buildMesh(*chunk);
+    std::array<std::shared_ptr<Chunk>, static_cast<std::size_t>(Face::FACE_COUNT)> neighbors = {
+        m_chunkManager.getChunk({.x = coord.x + 1, .y = coord.y, .z = coord.z}),
+        m_chunkManager.getChunk({.x = coord.x - 1, .y = coord.y, .z = coord.z}),
+        m_chunkManager.getChunk({.x = coord.x, .y = coord.y + 1, .z = coord.z}),
+        m_chunkManager.getChunk({.x = coord.x, .y = coord.y - 1, .z = coord.z}),
+        m_chunkManager.getChunk({.x = coord.x, .y = coord.y, .z = coord.z + 1}),
+        m_chunkManager.getChunk({.x = coord.x, .y = coord.y, .z = coord.z - 1}),
+    };
+    BlockAccessor accessor{center, neighbors};
+    auto vertices = mesher::buildMesh(accessor);
     m_chunkMesh[coord].upload(vertices);
 }
 

@@ -73,7 +73,7 @@ void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face, float la
 
 }  // namespace
 
-std::vector<ChunkVertex> buildMesh(const Chunk& chunk) {
+std::vector<ChunkVertex> buildMesh(const BlockAccessor& accessor) {
     std::vector<ChunkVertex> vertices;
     constexpr std::size_t VERTICES_PER_BLOCK = FACE_COUNT * 6;  // 2 triangles x 3 vertices for each
     vertices.reserve(Chunk::VOLUME * VERTICES_PER_BLOCK);
@@ -81,7 +81,7 @@ std::vector<ChunkVertex> buildMesh(const Chunk& chunk) {
     for (int z = 0; z < Chunk::SIZE; ++z) {
         for (int y = 0; y < Chunk::SIZE; ++y) {
             for (int x = 0; x < Chunk::SIZE; ++x) {
-                const BlockId block = chunk.get(x, y, z);
+                const BlockId block = accessor.get({x, y, z});
                 if (block == blocks::Air) {
                     continue;
                 }
@@ -95,7 +95,7 @@ std::vector<ChunkVertex> buildMesh(const Chunk& chunk) {
                 for (std::size_t f = 0; f < FACE_COUNT; f++) {
                     const glm::ivec3 offset = FACE_NEIGHBOR_OFFSETS[f];
                     const BlockId neighbor =
-                        chunk.getOrAir(x + offset.x, y + offset.y, z + offset.z);
+                        accessor.get({x + offset.x, y + offset.y, z + offset.z});
                     // Replace this inline check with isOpaque(neighbor) when transparent blocks is
                     // added (water, glass, leaves)
                     if (neighbor != blocks::Air) {

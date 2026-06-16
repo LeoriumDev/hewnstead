@@ -110,6 +110,7 @@ add_library(hewnstead_core STATIC
     src/render/mesher.cpp
     src/render/shader.cpp
     src/render/texture_array.cpp
+    src/world/block_accessor.cpp
     src/world/block_id.cpp
     src/world/chunk_manager.cpp
     src/world/chunk.cpp
