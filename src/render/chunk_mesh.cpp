@@ -14,6 +14,7 @@ namespace {
 constexpr GLuint POSITION_ATTRIB = 0;
 constexpr GLuint UV_ATTRIB = 1;
 constexpr GLuint LAYER_ATTRIB = 2;
+constexpr GLuint SHADE_ATTRIB = 3;
 
 }  // namespace
 
@@ -59,6 +60,15 @@ ChunkMesh::ChunkMesh() {
                           sizeof(ChunkVertex),
                           reinterpret_cast<void*>(offsetof(ChunkVertex, layer)));
     glEnableVertexAttribArray(LAYER_ATTRIB);
+
+    // Attribute 3: directional shading
+    glVertexAttribPointer(SHADE_ATTRIB,
+                          1,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(ChunkVertex),
+                          reinterpret_cast<void*>(offsetof(ChunkVertex, shade)));
+    glEnableVertexAttribArray(SHADE_ATTRIB);
 
     // NOLINTEND(performance-no-int-to-ptr)
 

@@ -9,9 +9,12 @@ struct ChunkVertex {
     glm::vec3 position;  // world-space, in voxel units (1 unit = 1 block)
     glm::vec2 uv;        // texture coord in [0, 1]
     float layer;         // texture array layer index
+    float shade;         // per-face directional shading: top brightest, sides mid, bottom darkest.
+                         // baked fake-diffuse, NOT real lighting (no propagation).
 };
 
-static_assert(sizeof(ChunkVertex) == sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(float),
+static_assert(sizeof(ChunkVertex) ==
+                  sizeof(glm::vec3) + sizeof(glm::vec2) + sizeof(float) + sizeof(float),
               "ChunkVertex layout: position(vec3) + uv(vec2) + layer(float). "
               "Layout breaks GL attribute pointers in ChunkMesh");
 static_assert(std::is_standard_layout_v<ChunkVertex>,

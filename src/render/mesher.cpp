@@ -40,10 +40,13 @@ constexpr std::array<std::array<glm::vec2, 4>, FACE_COUNT> FACE_UVS = {{
     {{{0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}}},  // North  (-Z)
 }};
 
+constexpr std::array<float, FACE_COUNT> FACE_SHADE = {0.8F, 0.8F, 1.0F, 0.5F, 0.8F, 0.8F};
+
 void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face, float layer) {
     const auto idx = static_cast<std::size_t>(face);
     const auto& corners = FACE_CORNERS[idx];
     const auto& uv = FACE_UVS[idx];
+    const auto& shade = FACE_SHADE[idx];
 
     // Two triangles per quad, share hypotenuse (corner 0 and corner 2).
     // 1 ─── 2
@@ -52,13 +55,13 @@ void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face, float la
     // │ /   │
     // 0 ─── 3
     // Triangle 1: corner 0, 1, 2
-    out.push_back({.position = base + corners[0], .uv = uv[0], .layer = layer});
-    out.push_back({.position = base + corners[1], .uv = uv[1], .layer = layer});
-    out.push_back({.position = base + corners[2], .uv = uv[2], .layer = layer});
+    out.push_back({.position = base + corners[0], .uv = uv[0], .layer = layer, .shade = shade});
+    out.push_back({.position = base + corners[1], .uv = uv[1], .layer = layer, .shade = shade});
+    out.push_back({.position = base + corners[2], .uv = uv[2], .layer = layer, .shade = shade});
     // Triangle 2: corner 0, 2, 3
-    out.push_back({.position = base + corners[0], .uv = uv[0], .layer = layer});
-    out.push_back({.position = base + corners[2], .uv = uv[2], .layer = layer});
-    out.push_back({.position = base + corners[3], .uv = uv[3], .layer = layer});
+    out.push_back({.position = base + corners[0], .uv = uv[0], .layer = layer, .shade = shade});
+    out.push_back({.position = base + corners[2], .uv = uv[2], .layer = layer, .shade = shade});
+    out.push_back({.position = base + corners[3], .uv = uv[3], .layer = layer, .shade = shade});
 }
 
 }  // namespace
