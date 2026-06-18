@@ -9,6 +9,7 @@ NamespaceIndentation: None
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
 
 PointerAlignment: Left
 ReferenceAlignment: Left
@@ -17,7 +18,7 @@ SpacesBeforeTrailingComments: 2
 
 FixNamespaceComments: true
 ShortNamespaceLines: 0
-SeparateDefinitionBlocks: Leave
+SeparateDefinitionBlocks: Always
 EmptyLineBeforeAccessModifier: LogicalBlock
 
 IndentPPDirectives: BeforeHash
@@ -32,7 +33,7 @@ IncludeCategories:
     Priority: 2
   - Regex: '^<GLFW/'
     Priority: 3
-  - Regex: '^<(glm|spdlog|stb|entt|FastNoise|Tracy|Jolt|doctest|zstd|sqlite3)'
+  - Regex: '^<(glm|spdlog|stb|entt|FastNoise|Tracy|Jolt|doctest|zstd|sqlite3|imgui)'
     Priority: 4
   - Regex: '^<.*>$'
     Priority: 5
@@ -41,3 +42,4 @@ BinPackArguments: false
 BinPackParameters: false
 
 InsertNewlineAtEOF: true
+AlwaysBreakTemplateDeclarations: Yes

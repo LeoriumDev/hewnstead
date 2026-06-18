@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hewnstead/core/gl_objects.hpp>
+
 #include <glad/gl.h>
 
 #include <span>
@@ -10,20 +12,21 @@ namespace hs {
 class TextureArray {
 public:
     explicit TextureArray(std::span<const std::string_view> paths);
-    ~TextureArray();
+    ~TextureArray() = default;
 
     TextureArray(const TextureArray&) = delete;
     TextureArray& operator=(const TextureArray&) = delete;
-    TextureArray(TextureArray&& other) noexcept;
-    TextureArray& operator=(TextureArray&& other) noexcept;
+    TextureArray(TextureArray&& other) noexcept = default;
+    TextureArray& operator=(TextureArray&& other) noexcept = default;
 
     void bind(GLuint unit = 0) const;
 
-    [[nodiscard]] GLuint id() const { return m_id; }
+    [[nodiscard]] GLuint id() const { return m_id.get(); }
+
     [[nodiscard]] GLsizei layerCount() const { return m_layerCount; }
 
 private:
-    GLuint m_id = 0;
+    TextureHandle m_id;
     GLsizei m_layerCount = 0;
 };
 

@@ -17,8 +17,9 @@ BlockId blockAtWorld(const ChunkManager& cm, int wx, int wy, int wz) {
         return blocks::Air;
     }
     glm::ivec3 local = hs::ChunkManager::worldToLocal(wx, wy, wz);
-    return chunk->get(local.x, local.y, local.z);
+    return chunk->get(local);
 }
+
 }  // namespace
 
 std::optional<RaycastHit>  // NOLINTNEXTLINE(readability-function-cognitive-complexity)

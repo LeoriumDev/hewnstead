@@ -8,7 +8,7 @@
 
 namespace hs {
 
-static_assert(hs::blocks::Air == 0, "Chunk's default-constructed state relies on Air being zero");
+static_assert(blocks::Air == 0, "Chunk's default-constructed state relies on Air being zero");
 
 class Chunk {
 public:
@@ -19,20 +19,31 @@ public:
 
     // (x, y, z) must be in [0, SIZE).
     [[nodiscard]] BlockId get(int x, int y, int z) const;
+    [[nodiscard]] BlockId get(glm::ivec3 c) const;
 
     // (x, y, z) may be anywhere; OOB is Air
     [[nodiscard]] BlockId getOrAir(int x, int y, int z) const;
+    [[nodiscard]] BlockId getOrAir(glm::ivec3 c) const;
 
     // (x, y, z) must be in [0, SIZE). Auto-marks chunk dirty.
     void set(int x, int y, int z, BlockId id);
+    void set(glm::ivec3 c, BlockId id);
 
     [[nodiscard]] std::span<const BlockId> blocks() const {
         return {m_blocks.data(), m_blocks.size()};
     }
 
     [[nodiscard]] bool isDirty() const { return m_dirty; }
+
     void makeDirty() { m_dirty = true; }
+
     void clearDirty() { m_dirty = false; }
+
+    [[nodiscard]] static constexpr bool inBounds(int v) { return v >= 0 && v < SIZE; }
+
+    [[nodiscard]] static constexpr bool inBounds(glm::ivec3 c) {
+        return inBounds(c.x) && inBounds(c.y) && inBounds(c.z);
+    }
 
 private:
     // Value-initialized to zero on default construction; zero == Air,

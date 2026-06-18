@@ -19,48 +19,7 @@ void glfwErrorCallback(int code, const char* description) {
     spdlog::error("GLFW error {}: {}", code, (description != nullptr) ? description : "(null)");
 }
 
-}  // namespace
-
-void Window::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
-    auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
-    if (self == nullptr) {
-        return;
-    }
-    self->m_fbWidth = width;
-    self->m_fbHeight = height;
-    glViewport(0, 0, width, height);
-}
-
-Window::Window(int width, int height, std::string_view title) {
-    glfwSetErrorCallback(glfwErrorCallback);
-
-    if (glfwInit() == 0) {
-        throw std::runtime_error("glfwInit failed");
-    }
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_SAMPLES, 4);  // request 4x MSAA framebuffer
-
-    std::string titleStr(title);
-    m_window = glfwCreateWindow(width, height, titleStr.c_str(), nullptr, nullptr);
-    if (m_window == nullptr) {
-        glfwTerminate();
-        throw std::runtime_error("glfwCreateWindow failed (see GLFW error above)");
-    }
-
-    glfwMakeContextCurrent(m_window);
-
-    int version = gladLoadGL(glfwGetProcAddress);
-    if (version == 0) {
-        glfwDestroyWindow(m_window);
-        glfwTerminate();
-        throw std::runtime_error("gladLoadGL failed");
-    }
-
+void logGpuInfo() {
     auto safeGetString = [](GLenum name) -> const char* {
         const auto* str = glGetString(name);
         return (str != nullptr) ? reinterpret_cast<const char*>(str) : "(unknown)";
@@ -152,6 +111,51 @@ Window::Window(int width, int height, std::string_view title) {
     logKV("ALIASED_LINE_WIDTH_RANGE", fmt::format("{} - {}", lineWidthRange[0], lineWidthRange[1]));
 
     spdlog::info("");
+}
+
+}  // namespace
+
+void Window::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
+    auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (self == nullptr) {
+        return;
+    }
+    self->m_fbWidth = width;
+    self->m_fbHeight = height;
+    glViewport(0, 0, width, height);
+}
+
+Window::Window(int width, int height, std::string_view title) {
+    glfwSetErrorCallback(glfwErrorCallback);
+
+    if (glfwInit() == 0) {
+        throw std::runtime_error("glfwInit failed");
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_SAMPLES, 4);  // request 4x MSAA framebuffer
+
+    std::string titleStr(title);
+    m_window = glfwCreateWindow(width, height, titleStr.c_str(), nullptr, nullptr);
+    if (m_window == nullptr) {
+        glfwTerminate();
+        throw std::runtime_error("glfwCreateWindow failed (see GLFW error above)");
+    }
+
+    glfwMakeContextCurrent(m_window);
+
+    int version = gladLoadGL(glfwGetProcAddress);
+    if (version == 0) {
+        glfwDestroyWindow(m_window);
+        glfwTerminate();
+        throw std::runtime_error("gladLoadGL failed");
+    }
+
+    logGpuInfo();
 
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);

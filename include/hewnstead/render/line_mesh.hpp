@@ -1,5 +1,6 @@
 #pragma once
 
+#include <hewnstead/core/gl_objects.hpp>
 #include <hewnstead/render/line_vertex.hpp>
 
 #include <span>
@@ -9,12 +10,12 @@ namespace hs {
 class LineMesh {
 public:
     LineMesh();
-    ~LineMesh();
+    ~LineMesh() = default;
 
     LineMesh(const LineMesh&) = delete;
     LineMesh& operator=(const LineMesh&) = delete;
-    LineMesh(LineMesh&&) noexcept;
-    LineMesh& operator=(LineMesh&&) noexcept;
+    LineMesh(LineMesh&&) noexcept = default;
+    LineMesh& operator=(LineMesh&&) noexcept = default;
 
     void draw() const;
     void upload(std::span<const LineVertex> vertices);
@@ -22,8 +23,8 @@ public:
     [[nodiscard]] int vertexCount() const { return m_vertexCount; }
 
 private:
-    unsigned int m_vao = 0;
-    unsigned int m_vbo = 0;
+    VertexArrayHandle m_vao;
+    VertexBufferHandle m_vbo;
     int m_vertexCount = 0;
 };
 

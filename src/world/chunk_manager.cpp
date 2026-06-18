@@ -43,8 +43,16 @@ ChunkCoord ChunkManager::worldToChunk(int wx, int wy, int wz) {
     return {.x = wx >> CHUNK_SHIFT, .y = wy >> CHUNK_SHIFT, .z = wz >> CHUNK_SHIFT};
 }
 
+ChunkCoord ChunkManager::worldToChunk(glm::ivec3 w) {
+    return {.x = w.x >> CHUNK_SHIFT, .y = w.y >> CHUNK_SHIFT, .z = w.z >> CHUNK_SHIFT};
+}
+
 glm::ivec3 ChunkManager::worldToLocal(int wx, int wy, int wz) {
     return {wx & CHUNK_MASK, wy & CHUNK_MASK, wz & CHUNK_MASK};
+}
+
+glm::ivec3 ChunkManager::worldToLocal(glm::ivec3 w) {
+    return {w.x & CHUNK_MASK, w.y & CHUNK_MASK, w.z & CHUNK_MASK};
 }
 
 glm::ivec3 ChunkManager::worldPosToBlock(const glm::vec3& worldPos) {

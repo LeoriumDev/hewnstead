@@ -62,7 +62,6 @@ if(imgui_ADDED)
         ${imgui_SOURCE_DIR}/imgui_draw.cpp
         ${imgui_SOURCE_DIR}/imgui_tables.cpp
         ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-        ${imgui_SOURCE_DIR}/imgui_demo.cpp
         ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
         ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
     )
@@ -98,7 +97,7 @@ target_compile_options(stb_image PRIVATE
 
 add_library(hewnstead_core STATIC
     src/core/application.cpp
-    src/core/glcheck.cpp
+    src/core/gl_check.cpp
     src/core/input.cpp
     src/core/splash.cpp
     src/core/window.cpp

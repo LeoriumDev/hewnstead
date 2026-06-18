@@ -30,7 +30,7 @@ constexpr float NEAR_PLANE = 0.1F;
 constexpr float FAR_PLANE = 1000.0F;
 
 // Block place/break reach
-constexpr float MAX_REACH = 5;
+constexpr float MAX_REACH = 5.0F;
 
 // Cube outline
 constexpr int CUBE_EDGE_COUNT = 12;

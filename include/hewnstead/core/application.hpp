@@ -28,7 +28,7 @@ class Chunk;
 class Application {
 public:
     Application();
-    ~Application();
+    ~Application() = default;
 
     Application(const Application&) = delete;
     Application& operator=(const Application&) = delete;
@@ -40,6 +40,7 @@ public:
 private:
     void update(float dt);
     void render();
+    [[nodiscard]] int totalVertexCount() const;
 
     // Declaration order IS construction order.
     // Window first: it creates the GL context every later GL-touching member depends on.
@@ -77,9 +78,11 @@ private:
     int m_fpsFrameCount = 0;
 
     // MSAA sample query
-    GLuint m_sampleQuery = 0;
+    QueryHandle m_sampleQuery;
     GLuint64 m_samplesPassed = 0;
     GLint m_actualSamples = 1;
+
+    std::vector<ChunkCoord> m_coords;
 };
 
 }  // namespace hs

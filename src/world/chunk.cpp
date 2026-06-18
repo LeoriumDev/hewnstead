@@ -11,31 +11,45 @@ std::size_t toIdx(int x, int y, int z) {
            (static_cast<std::size_t>(y) * Chunk::SIZE) + static_cast<std::size_t>(x);
 }
 
-bool inRange(int v) {
-    return v >= 0 && v < Chunk::SIZE;
-}
-
 }  // namespace
 
 BlockId Chunk::get(int x, int y, int z) const {
-    assert(inRange(x));
-    assert(inRange(y));
-    assert(inRange(z));
+    assert(Chunk::inBounds(x));
+    assert(Chunk::inBounds(y));
+    assert(Chunk::inBounds(z));
     return m_blocks[toIdx(x, y, z)];
 }
 
+BlockId Chunk::get(glm::ivec3 c) const {
+    assert(Chunk::inBounds(c.x));
+    assert(Chunk::inBounds(c.y));
+    assert(Chunk::inBounds(c.z));
+    return m_blocks[toIdx(c.x, c.y, c.z)];
+}
+
 BlockId Chunk::getOrAir(int x, int y, int z) const {
-    if (!inRange(x) || !inRange(y) || !inRange(z)) {
-        return hs::blocks::Air;
+    if (!Chunk::inBounds({x, y, z})) {
+        return blocks::Air;
     }
     return m_blocks[toIdx(x, y, z)];
 }
 
+BlockId Chunk::getOrAir(glm::ivec3 c) const {
+    if (!Chunk::inBounds(c)) {
+        return blocks::Air;
+    }
+    return m_blocks[toIdx(c.x, c.y, c.z)];
+}
+
 void Chunk::set(int x, int y, int z, BlockId id) {
-    assert(inRange(x));
-    assert(inRange(y));
-    assert(inRange(z));
+    assert(Chunk::inBounds({x, y, z}));
     m_blocks[toIdx(x, y, z)] = id;
+    m_dirty = true;
+}
+
+void Chunk::set(glm::ivec3 c, BlockId id) {
+    assert(Chunk::inBounds(c));
+    m_blocks[toIdx(c.x, c.y, c.z)] = id;
     m_dirty = true;
 }
 

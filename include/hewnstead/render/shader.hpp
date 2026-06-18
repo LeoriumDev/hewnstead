@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hewnstead/core/gl_objects.hpp>
+
 #include <glm/mat4x4.hpp>
 
 #include <string>
@@ -10,7 +12,7 @@ namespace hs {
 class Shader {
 public:
     Shader(std::string_view vertPath, std::string_view fragPath);
-    ~Shader();
+    ~Shader() = default;
 
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
@@ -22,10 +24,10 @@ public:
     void setMat4(const std::string& name, const glm::mat4& value) const;
     void setInt(const std::string& name, int value) const;
 
-    [[nodiscard]] unsigned int id() const { return m_program; }
+    [[nodiscard]] unsigned int id() const { return m_program.get(); }
 
 private:
-    unsigned int m_program = 0;  // OpenGL's invalid handle
+    ProgramHandle m_program;
 };
 
 }  // namespace hs

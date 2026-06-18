@@ -1,4 +1,6 @@
-#include <hewnstead/core/glcheck.hpp>
+#include <hewnstead/core/gl_check.hpp>
+#include <hewnstead/core/gl_handle.hpp>
+#include <hewnstead/core/gl_objects.hpp>
 #include <hewnstead/render/chunk_mesh.hpp>
 
 #include <glad/gl.h>
@@ -16,11 +18,15 @@ constexpr GLuint LAYER_ATTRIB = 2;
 }  // namespace
 
 ChunkMesh::ChunkMesh() {
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
+    unsigned int vao = 0;
+    unsigned int vbo = 0;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    m_vao = VertexArrayHandle{vao};
+    m_vbo = VertexBufferHandle{vbo};
 
-    glBindVertexArray(m_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBindVertexArray(m_vao.get());
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo.get());
 
     // OpenGL legacy: glVertexAttribPointer's last param is byte offset
     // disguised as void* due to pre-VBO API signature
@@ -63,51 +69,17 @@ ChunkMesh::ChunkMesh() {
     GL_CHECK();
 }
 
-ChunkMesh::~ChunkMesh() {
-    if (m_vao != 0) {
-        glDeleteVertexArrays(1, &m_vao);
-    }
-    if (m_vbo != 0) {
-        glDeleteBuffers(1, &m_vbo);
-    }
-}
-
-ChunkMesh::ChunkMesh(ChunkMesh&& other) noexcept
-    : m_vao(other.m_vao), m_vbo(other.m_vbo), m_vertexCount(other.m_vertexCount) {
-    other.m_vao = 0;
-    other.m_vbo = 0;
-    other.m_vertexCount = 0;
-}
-
-ChunkMesh& ChunkMesh::operator=(ChunkMesh&& other) noexcept {
-    if (this != &other) {
-        if (m_vao != 0) {
-            glDeleteVertexArrays(1, &m_vao);
-        }
-        if (m_vbo != 0) {
-            glDeleteBuffers(1, &m_vbo);
-        }
-        m_vao = other.m_vao;
-        m_vbo = other.m_vbo;
-        m_vertexCount = other.m_vertexCount;
-        other.m_vao = 0;
-        other.m_vbo = 0;
-        other.m_vertexCount = 0;
-    }
-    return *this;
-}
-
 void ChunkMesh::draw() const {
     if (m_vertexCount == 0) {
         return;
     }
-    glBindVertexArray(m_vao);
+    glBindVertexArray(m_vao.get());
     glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
     glBindVertexArray(0);
 }
 
 void ChunkMesh::upload(std::span<const ChunkVertex> vertices) {
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo.get());
     glBufferData(GL_ARRAY_BUFFER,
                  static_cast<GLsizeiptr>(vertices.size_bytes()),
                  vertices.data(),

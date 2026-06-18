@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/ext/vector_int3.hpp>
+
 #include <cstddef>
 #include <functional>
 
@@ -12,6 +14,10 @@ struct ChunkCoord {
 
     friend bool operator==(const ChunkCoord&, const ChunkCoord&) = default;
 };
+
+[[nodiscard]] constexpr ChunkCoord operator+(ChunkCoord c, glm::ivec3 d) {
+    return {.x = c.x + d.x, .y = c.y + d.y, .z = c.z + d.z};
+}
 
 }  // namespace hs
 

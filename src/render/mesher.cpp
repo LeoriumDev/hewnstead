@@ -28,16 +28,6 @@ constexpr std::array<std::array<glm::vec3, 4>, FACE_COUNT> FACE_CORNERS = {{
     {{{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}},
 }};
 
-// Per-face neighbor cell offsets
-constexpr std::array<glm::ivec3, FACE_COUNT> FACE_NEIGHBOR_OFFSETS = {{
-    {+1, 0, 0},  // East   (+X)
-    {-1, 0, 0},  // West   (-X)
-    {0, +1, 0},  // Top    (+Y)
-    {0, -1, 0},  // Bottom (-Y)
-    {0, 0, +1},  // South  (+Z)
-    {0, 0, -1},  // North  (-Z)
-}};
-
 // Per-face texture coords (UV per corner, matched to FACE_CORNERS).
 // Side faces (East/West/South/North): up vector = +Y (world up).
 // Top/Bottom faces: up vector = -Z (north).
@@ -75,9 +65,6 @@ void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face, float la
 
 std::vector<ChunkVertex> buildMesh(const BlockAccessor& accessor) {
     std::vector<ChunkVertex> vertices;
-    constexpr std::size_t VERTICES_PER_BLOCK = FACE_COUNT * 6;  // 2 triangles x 3 vertices for each
-    vertices.reserve(Chunk::VOLUME * VERTICES_PER_BLOCK);
-
     for (int z = 0; z < Chunk::SIZE; ++z) {
         for (int y = 0; y < Chunk::SIZE; ++y) {
             for (int x = 0; x < Chunk::SIZE; ++x) {
@@ -93,7 +80,7 @@ std::vector<ChunkVertex> buildMesh(const BlockAccessor& accessor) {
                 };
 
                 for (std::size_t f = 0; f < FACE_COUNT; f++) {
-                    const glm::ivec3 offset = FACE_NEIGHBOR_OFFSETS[f];
+                    const glm::ivec3 offset = faceNormal(static_cast<Face>(f));
                     const BlockId neighbor =
                         accessor.get({x + offset.x, y + offset.y, z + offset.z});
                     // Replace this inline check with isOpaque(neighbor) when transparent blocks is

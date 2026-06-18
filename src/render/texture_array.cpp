@@ -1,4 +1,4 @@
-#include <hewnstead/core/glcheck.hpp>
+#include <hewnstead/core/gl_check.hpp>
 #include <hewnstead/render/texture_array.hpp>
 
 #include <spdlog/spdlog.h>
@@ -54,9 +54,10 @@ TextureArray::TextureArray(std::span<const std::string_view> paths) {
     assert(!paths.empty() && "TextureArray needs at least one texture");
 
     m_layerCount = static_cast<GLsizei>(paths.size());
-
-    glGenTextures(1, &m_id);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_id);
+    unsigned int id = 0;
+    glGenTextures(1, &id);
+    m_id = TextureHandle{id};
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_id.get());
     glTexStorage3D(
         GL_TEXTURE_2D_ARRAY, MIP_LEVELS, GL_RGBA8, TEXTURE_WIDTH, TEXTURE_HEIGHT, m_layerCount);
 
@@ -80,34 +81,9 @@ TextureArray::TextureArray(std::span<const std::string_view> paths) {
                  TEXTURE_HEIGHT);
 }
 
-TextureArray::~TextureArray() {
-    if (m_id != 0) {
-        glDeleteTextures(1, &m_id);
-    }
-}
-
-TextureArray::TextureArray(TextureArray&& other) noexcept
-    : m_id(other.m_id), m_layerCount(other.m_layerCount) {
-    other.m_id = 0;
-    other.m_layerCount = 0;
-}
-
-TextureArray& TextureArray::operator=(TextureArray&& other) noexcept {
-    if (this != &other) {
-        if (m_id != 0) {
-            glDeleteTextures(1, &m_id);
-        }
-        m_id = other.m_id;
-        m_layerCount = other.m_layerCount;
-        other.m_id = 0;
-        other.m_layerCount = 0;
-    }
-    return *this;
-}
-
 void TextureArray::bind(GLuint unit) const {
     glActiveTexture(GL_TEXTURE0 + unit);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_id);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_id.get());
 }
 
 }  // namespace hs

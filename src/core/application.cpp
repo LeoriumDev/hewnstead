@@ -1,3 +1,5 @@
+#pragma region includes
+
 #include <hewnstead/core/application.hpp>
 #include <hewnstead/core/config.hpp>
 #include <hewnstead/render/debug_overlay.hpp>
@@ -11,16 +13,17 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 #include <spdlog/fmt/bundled/format.h>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <array>
-#include <imgui.h>
 #include <span>
 #include <stdexcept>
 #include <string_view>
 
-#include "spdlog/spdlog.h"
+#pragma endregion
 
 namespace hs {
 
@@ -50,33 +53,27 @@ void setupGlState() {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    glClearColor(
-        hs::config::CLEAR_R, hs::config::CLEAR_G, hs::config::CLEAR_B, hs::config::CLEAR_A);
+    glClearColor(config::CLEAR_R, config::CLEAR_G, config::CLEAR_B, config::CLEAR_A);
 
     // Enable MSAA in rasterization
     glEnable(GL_MULTISAMPLE);
 
+    // Explicit default
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-constexpr std::optional<hs::BlockId> keyToBlock(int key) {
+constexpr std::optional<BlockId> keyToBlock(int key) {
     switch (key) {
-    case GLFW_KEY_1:
-        return hs::blocks::Stone;
-    case GLFW_KEY_2:
-        return hs::blocks::Dirt;
-    case GLFW_KEY_3:
-        return hs::blocks::Log;
-    case GLFW_KEY_4:
-        return hs::blocks::Planks;
-    case GLFW_KEY_5:
-        return hs::blocks::Grass;
-    default:
-        return std::nullopt;
+    case GLFW_KEY_1: return blocks::Stone;
+    case GLFW_KEY_2: return blocks::Dirt;
+    case GLFW_KEY_3: return blocks::Log;
+    case GLFW_KEY_4: return blocks::Planks;
+    case GLFW_KEY_5: return blocks::Grass;
+    default: return std::nullopt;
     }
 }
 
-void handleBlockHotkeys(const hs::Input& input, hs::BlockId& selectedBlock) {
+void handleBlockHotkeys(const Input& input, BlockId& selectedBlock) {
     for (int key = GLFW_KEY_1; key <= GLFW_KEY_5; ++key) {
         if (input.justPressed(key)) {
             if (auto blk = keyToBlock(key)) {
@@ -87,8 +84,8 @@ void handleBlockHotkeys(const hs::Input& input, hs::BlockId& selectedBlock) {
 }
 
 void handleSpecialKeys(hs::Input& input,
-                       hs::Window& window,
                        bool& overlayVisible,
+                       hs::Window& window,
                        bool& wireframe) {
     if (input.justPressed(GLFW_KEY_ESCAPE)) {
         window.requestClose();
@@ -110,22 +107,20 @@ void handleSpecialKeys(hs::Input& input,
     }
 }
 
-void renderScene(const hs::Shader& shader,
-                 const std::unordered_map<hs::ChunkCoord, hs::ChunkMesh>& meshes,
-                 const hs::Camera& camera,
-                 const hs::TextureArray& blockTextures,
+void renderScene(const Shader& shader,
+                 const std::unordered_map<ChunkCoord, ChunkMesh>& meshes,
+                 const Camera& camera,
+                 const TextureArray& blockTextures,
                  float aspect,
                  bool wireframe,
-                 const hs::LineMesh& lineMesh,
-                 const hs::Shader& lineShader) {
+                 const LineMesh& lineMesh,
+                 const Shader& lineShader) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
     glm::mat4 view = camera.viewMatrix();
-    glm::mat4 projection = glm::perspective(glm::radians(hs::config::FOV_DEGREES),
-                                            aspect,
-                                            hs::config::NEAR_PLANE,
-                                            hs::config::FAR_PLANE);
+    glm::mat4 projection = glm::perspective(
+        glm::radians(config::FOV_DEGREES), aspect, config::NEAR_PLANE, config::FAR_PLANE);
 
     shader.use();
     shader.setMat4("u_view", view);
@@ -134,7 +129,7 @@ void renderScene(const hs::Shader& shader,
     blockTextures.bind(0);
 
     for (const auto& [coord, mesh] : meshes) {
-        const glm::vec3 origin = glm::vec3(hs::ChunkManager::chunkToWorld(coord));
+        const glm::vec3 origin = glm::vec3(ChunkManager::chunkToWorld(coord));
         const glm::mat4 model = glm::translate(glm::mat4(1.0F), origin);
         shader.setMat4("u_model", model);
         mesh.draw();
@@ -149,89 +144,85 @@ void renderScene(const hs::Shader& shader,
     }
 }
 
-void handleBreakBlock(const hs::Input& input,
-                      hs::ChunkManager& cm,
-                      const std::optional<hs::RaycastHit>& lookingAt) {
-    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || !lookingAt) {
-        return;
-    }
-    const glm::ivec3 cell = lookingAt->cell;
-    const std::shared_ptr<hs::Chunk> chunk =
-        cm.getChunk(hs::ChunkManager::worldToChunk(cell.x, cell.y, cell.z));
-    if (!chunk) {
-        return;
-    }
-    const glm::ivec3 local = hs::ChunkManager::worldToLocal(cell.x, cell.y, cell.z);
-    chunk->set(local.x, local.y, local.z, hs::blocks::Air);
+// Border edit: the neighbor chunk's facing surface may need re-meshing.
+void markEditDirty(ChunkManager& cm, const glm::ivec3 cell) {
+    constexpr int MAX = Chunk::SIZE - 1;
+    const ChunkCoord coord = ChunkManager::worldToChunk(cell);
+    const glm::ivec3 local = ChunkManager::worldToLocal(cell);
 
-    // Border edit: the neighbor chunk's facing surface may need re-meshing.
-    const auto coord = hs::ChunkManager::worldToChunk(cell.x, cell.y, cell.z);
-    constexpr int MAX = hs::Chunk::SIZE - 1;
-    if (local.x == 0) {
-        if (auto n = cm.getChunk({.x = coord.x - 1, .y = coord.y, .z = coord.z}))
+    // clang-format off
+    const std::array<std::pair<bool, glm::ivec3>, 6> borders = {{
+        {local.x == 0, {-1, 0, 0}}, {local.x == MAX, {1, 0, 0}},
+        {local.y == 0, {0, -1, 0}}, {local.y == MAX, {0, 1, 0}},
+        {local.z == 0, {0, 0, -1}}, {local.z == MAX, {0, 0, 1}},
+    }};
+    // clang-format on
+
+    for (const auto& [onBorder, offset] : borders) {
+        if (!onBorder) {
+            continue;
+        }
+        if (auto n = cm.getChunk(coord + offset)) {
             n->makeDirty();
-    }
-    if (local.x == MAX) {
-        if (auto n = cm.getChunk({.x = coord.x + 1, .y = coord.y, .z = coord.z}))
-            n->makeDirty();
-    }
-    if (local.y == 0) {
-        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y - 1, .z = coord.z}))
-            n->makeDirty();
-    }
-    if (local.y == MAX) {
-        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y + 1, .z = coord.z}))
-            n->makeDirty();
-    }
-    if (local.z == 0) {
-        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y, .z = coord.z - 1}))
-            n->makeDirty();
-    }
-    if (local.z == MAX) {
-        if (auto n = cm.getChunk({.x = coord.x, .y = coord.y, .z = coord.z + 1}))
-            n->makeDirty();
+        }
     }
 }
 
-void handlePlaceBlock(const hs::Input& input,
-                      hs::ChunkManager& cm,
-                      const std::optional<hs::RaycastHit>& lookingAt,
-                      hs::BlockId selectedBlock) {
+// Edits one world cell. Marks the edited chunk + any bordering neighbor dirty.
+// onlyIfAir: skip if the target isn't air (place semantics). Returns whether it changed.
+bool setWorldBlock(ChunkManager& cm, glm::ivec3 cell, BlockId block, bool onlyIfAir = false) {
+    const ChunkCoord coord = ChunkManager::worldToChunk(cell);
+    const auto chunk = cm.getChunk(coord);
+    if (!chunk) {
+        return false;
+    }
+    const glm::ivec3 local = ChunkManager::worldToLocal(cell);
+    if (onlyIfAir && chunk->get(local) != blocks::Air) {
+        return false;
+    }
+    chunk->set(local, block);
+    markEditDirty(cm, cell);
+    return true;
+}
+
+void handleBreakBlock(const Input& input,
+                      ChunkManager& cm,
+                      const std::optional<RaycastHit>& lookingAt) {
+    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || !lookingAt) {
+        return;
+    }
+    setWorldBlock(cm, lookingAt->cell, blocks::Air);
+}
+
+void handlePlaceBlock(const Input& input,
+                      ChunkManager& cm,
+                      const std::optional<RaycastHit>& lookingAt,
+                      BlockId selectedBlock) {
     if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || !lookingAt || !lookingAt->face) {
         return;
     }
     const glm::ivec3 placeCell = lookingAt->cell + hs::faceNormal(*lookingAt->face);
-    const std::shared_ptr<hs::Chunk> chunk =
-        cm.getChunk(hs::ChunkManager::worldToChunk(placeCell.x, placeCell.y, placeCell.z));
-    if (!chunk) {
-        return;
-    }
-    const glm::ivec3 local = hs::ChunkManager::worldToLocal(placeCell.x, placeCell.y, placeCell.z);
-    if (chunk->get(local.x, local.y, local.z) != hs::blocks::Air) {
-        return;  // occupied, don't place
-    }
-    chunk->set(local.x, local.y, local.z, selectedBlock);
+    setWorldBlock(cm, placeCell, selectedBlock, true);
 }
 
-void handlePickBlock(const hs::Input& input,
-                     hs::ChunkManager& cm,
-                     const std::optional<hs::RaycastHit>& lookingAt,
-                     hs::BlockId& selectedBlock) {
+void handlePickBlock(const Input& input,
+                     ChunkManager& cm,
+                     const std::optional<RaycastHit>& lookingAt,
+                     BlockId& selectedBlock) {
     if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_MIDDLE) || !lookingAt) {
         return;
     }
-    const std::shared_ptr<hs::Chunk> chunk = cm.getChunk(
-        hs::ChunkManager::worldToChunk(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z));
+    const std::shared_ptr<Chunk> chunk = cm.getChunk(ChunkManager::worldToChunk(lookingAt->cell));
     if (!chunk) {
         return;
     }
-    BlockId target = chunk->getOrAir(lookingAt->cell.x, lookingAt->cell.y, lookingAt->cell.z);
+    BlockId target = chunk->getOrAir(lookingAt->cell);
     if (target != blocks::Air) {
         selectedBlock = target;
     }
 }
 
-std::array<hs::LineVertex, hs::config::CUBE_OUTLINE_VERTEX_COUNT>
+std::array<LineVertex, config::CUBE_OUTLINE_VERTEX_COUNT>
 cubeOutlineVertices(const glm::ivec3& cell, const glm::vec3& color) {
     const auto base = glm::vec3{cell};
     const std::array<glm::vec3, 8> c = {
@@ -244,25 +235,15 @@ cubeOutlineVertices(const glm::ivec3& cell, const glm::vec3& color) {
         base + glm::vec3{1, 1, 1},
         base + glm::vec3{0, 1, 1},
     };
+    // clang-format off
     const std::array<std::pair<int, int>, 12> edges = {{
-        // bottom
-        {0, 1},
-        {1, 2},
-        {2, 3},
-        {3, 0},
-        // top
-        {4, 5},
-        {5, 6},
-        {6, 7},
-        {7, 4},
-        // vertical
-        {0, 4},
-        {1, 5},
-        {2, 6},
-        {3, 7},
+        {0, 1}, {1, 2}, {2, 3}, {3, 0},  // bottom
+        {4, 5}, {5, 6}, {6, 7}, {7, 4},  // top
+        {0, 4}, {1, 5}, {2, 6}, {3, 7},  // vertical
     }};
-    std::array<hs::LineVertex, hs::config::CUBE_OUTLINE_VERTEX_COUNT> out;
-    for (std::size_t i = 0; i < hs::config::CUBE_EDGE_COUNT; ++i) {
+    // clang-format on
+    std::array<LineVertex, config::CUBE_OUTLINE_VERTEX_COUNT> out;
+    for (std::size_t i = 0; i < config::CUBE_EDGE_COUNT; ++i) {
         out[2 * i] = {.position = c[static_cast<size_t>(edges[i].first)], .color = color};
         out[(2 * i) + 1] = {.position = c[static_cast<size_t>(edges[i].second)], .color = color};
     }
@@ -283,6 +264,28 @@ void drawCrosshair() {
     drawList->AddLine({center.x, center.y - ARM}, {center.x, center.y + ARM}, COLOR, THICKNESS);
 }
 
+std::vector<ChunkCoord> initialGridCoord() {
+    std::vector<ChunkCoord> coords;
+    for (int cz = -1; cz <= 1; ++cz) {
+        for (int cy = -1; cy <= 1; ++cy) {
+            for (int cx = -1; cx <= 1; ++cx) {
+                coords.emplace_back(cx, cy, cz);
+            }
+        }
+    }
+    return coords;
+}
+
+void fillChunkSolid(const std::shared_ptr<Chunk>& chunk, BlockId block) {
+    for (int z = 0; z < Chunk::SIZE; ++z) {
+        for (int y = 0; y < Chunk::SIZE; ++y) {
+            for (int x = 0; x < Chunk::SIZE; ++x) {
+                chunk->set(x, y, z, block);
+            }
+        }
+    }
+}
+
 }  // namespace
 
 Application::Application()
@@ -291,34 +294,15 @@ Application::Application()
       m_lineShader(config::LINE_VERTEX_SHADER_PATH, config::LINE_FRAGMENT_SHADER_PATH),
       m_blockTextures(TEXTURE_PATHS) {
 
-    for (int cz = -1; cz <= 1; cz++) {
-        for (int cy = -1; cy <= 1; cy++) {
-            for (int cx = -1; cx <= 1; cx++) {
-                const ChunkCoord coord{.x = cx, .y = cy, .z = cz};
-                const std::shared_ptr<Chunk> chunk = m_chunkManager.loadChunk(coord);
-                if (chunk == nullptr) {
-                    throw std::runtime_error(
-                        fmt::format("Failed to load chunk at ({}, {}, {})", cx, cy, cz));
-                }
-                for (int z = 0; z < Chunk::SIZE; ++z) {
-                    for (int y = 0; y < Chunk::SIZE; ++y) {
-                        for (int x = 0; x < Chunk::SIZE; ++x) {
-                            chunk->set(x, y, z, blocks::Stone);
-                        }
-                    }
-                }
-            }
-        }
+    m_coords = initialGridCoord();
+    for (const ChunkCoord& coord : m_coords) {
+        const auto chunk = m_chunkManager.loadChunk(coord);
+        fillChunkSolid(chunk, blocks::Stone);
     }
 
-    spdlog::info("ChunkCount: {}", m_chunkManager.chunkCount());
-
-    for (int cz = -1; cz <= 1; cz++) {
-        for (int cy = -1; cy <= 1; cy++) {
-            for (int cx = -1; cx <= 1; cx++) {
-                rebuildChunkMesh({.x = cx, .y = cy, .z = cz});
-            }
-        }
+    // Cross-chunk meshing requires neighbors exist
+    for (const ChunkCoord& coord : m_coords) {
+        rebuildChunkMesh(coord);
     }
 
     m_window.attachInput(&m_input);
@@ -326,19 +310,16 @@ Application::Application()
 
     setupGlState();
 
-    glGenQueries(1, &m_sampleQuery);
+    unsigned int sampleQuery = 0;
+    glGenQueries(1, &sampleQuery);
+    m_sampleQuery = QueryHandle{sampleQuery};
+
     glGetIntegerv(GL_SAMPLES, &m_actualSamples);
     if (m_actualSamples == 0) {
         m_actualSamples = 1;
     }
 
     m_lastFrameTime = glfwGetTime();
-}
-
-Application::~Application() {
-    if (m_sampleQuery != 0) {
-        glDeleteQueries(1, &m_sampleQuery);
-    }
 }
 
 void Application::run() {
@@ -370,7 +351,7 @@ void Application::update(float dt) {
     m_input.update(m_window.raw());
     m_window.pollEvents();
     m_input.setUiCapture(m_imgui->wantCaptureMouse(), m_imgui->wantCaptureKeyboard());
-    handleSpecialKeys(m_input, m_window, m_overlayVisible, m_wireframe);
+    handleSpecialKeys(m_input, m_overlayVisible, m_window, m_wireframe);
     handleBlockHotkeys(m_input, m_selectedBlock);
 
     // Simulation
@@ -384,11 +365,12 @@ void Application::update(float dt) {
             auto outline = cubeOutlineVertices(m_lookingAt->cell, OUTLINE_COLOR);
             m_lineMesh.upload(std::span{outline});
             m_lastOutlineCell = m_lookingAt->cell;
-            m_targetBlockName = blockName(
-                m_chunkManager
-                    .getChunk(ChunkManager::worldToChunk(
-                        m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z))
-                    ->getOrAir(m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z));
+            auto chunk = m_chunkManager.getChunk(ChunkManager::worldToChunk(
+                m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z));
+            if (chunk) {
+                m_targetBlockName = blockName(
+                    chunk->getOrAir(m_lookingAt->cell.x, m_lookingAt->cell.y, m_lookingAt->cell.z));
+            }
         }
     } else if (m_lastOutlineCell) {
         m_lineMesh.upload(std::span<const LineVertex>{});
@@ -399,15 +381,13 @@ void Application::update(float dt) {
     handleBreakBlock(m_input, m_chunkManager, m_lookingAt);
     handlePlaceBlock(m_input, m_chunkManager, m_lookingAt, m_selectedBlock);
     handlePickBlock(m_input, m_chunkManager, m_lookingAt, m_selectedBlock);
-    for (int cz = -1; cz <= 1; cz++) {
-        for (int cy = -1; cy <= 1; cy++) {
-            for (int cx = -1; cx <= 1; cx++) {
-                auto chunk = m_chunkManager.getChunk({.x = cx, .y = cy, .z = cz});
-                if (chunk && chunk->isDirty()) {
-                    rebuildChunkMesh({.x = cx, .y = cy, .z = cz});
-                    chunk->clearDirty();
-                }
-            }
+
+    // Remesh Dirty Chunk
+    for (const auto& coord : m_coords) {
+        auto chunk = m_chunkManager.getChunk(coord);
+        if (chunk && chunk->isDirty()) {
+            rebuildChunkMesh(coord);
+            chunk->clearDirty();
         }
     }
 }
@@ -421,32 +401,23 @@ void Application::render() {
         .selectedBlock = m_selectedBlock,
         .fps = m_fps,
     };
-    auto vertexCount = [this]() -> int {
-        int total = 0;
-        for (int cz = -1; cz <= 1; cz++) {
-            for (int cy = -1; cy <= 1; cy++) {
-                for (int cx = -1; cx <= 1; cx++) {
-                    total += m_chunkMesh[{.x = cx, .y = cy, .z = cz}].vertexCount();
-                }
-            }
-        }
-        return total;
-    };
+
     const DebugInfo debug{
         .yaw = m_camera.yaw(),
         .pitch = m_camera.pitch(),
-        .vertexCount = vertexCount(),
+        .vertexCount = totalVertexCount(),
         .samplesPassed = m_samplesPassed,
         .actualSamples = m_actualSamples,
         .lookingAt = m_lookingAt,
         .targetBlockName = m_targetBlockName,
     };
+
     drawHud(hud, debug, m_overlayVisible);
 
     drawCrosshair();
 
     // Scene
-    glBeginQuery(GL_SAMPLES_PASSED, m_sampleQuery);
+    glBeginQuery(GL_SAMPLES_PASSED, m_sampleQuery.get());
     renderScene(m_chunkShader,
                 m_chunkMesh,
                 m_camera,
@@ -456,7 +427,7 @@ void Application::render() {
                 m_lineMesh,
                 m_lineShader);
     glEndQuery(GL_SAMPLES_PASSED);
-    glGetQueryObjectui64v(m_sampleQuery, GL_QUERY_RESULT, &m_samplesPassed);
+    glGetQueryObjectui64v(m_sampleQuery.get(), GL_QUERY_RESULT, &m_samplesPassed);
 
     m_imgui->endFrame();
 }
@@ -467,17 +438,21 @@ void Application::rebuildChunkMesh(ChunkCoord coord) {
         throw std::runtime_error(
             fmt::format("Failed to load chunk at ({}, {}, {})", coord.x, coord.y, coord.z));
     }
-    std::array<std::shared_ptr<Chunk>, static_cast<std::size_t>(Face::FACE_COUNT)> neighbors = {
-        m_chunkManager.getChunk({.x = coord.x + 1, .y = coord.y, .z = coord.z}),
-        m_chunkManager.getChunk({.x = coord.x - 1, .y = coord.y, .z = coord.z}),
-        m_chunkManager.getChunk({.x = coord.x, .y = coord.y + 1, .z = coord.z}),
-        m_chunkManager.getChunk({.x = coord.x, .y = coord.y - 1, .z = coord.z}),
-        m_chunkManager.getChunk({.x = coord.x, .y = coord.y, .z = coord.z + 1}),
-        m_chunkManager.getChunk({.x = coord.x, .y = coord.y, .z = coord.z - 1}),
-    };
+    std::array<std::shared_ptr<Chunk>, mesher::FACE_COUNT> neighbors;
+    for (std::size_t f = 0; f < mesher::FACE_COUNT; ++f) {
+        neighbors[f] = m_chunkManager.getChunk(coord + faceNormal(Face(f)));
+    }
     BlockAccessor accessor{center, neighbors};
     auto vertices = mesher::buildMesh(accessor);
     m_chunkMesh[coord].upload(vertices);
+}
+
+int Application::totalVertexCount() const {
+    int total = 0;
+    for (const auto& [coord, mesh] : m_chunkMesh) {
+        total += mesh.vertexCount();
+    }
+    return total;
 }
 
 }  // namespace hs

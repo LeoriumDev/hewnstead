@@ -30,7 +30,9 @@ public:
     // World-coord conversion
     [[nodiscard]] static glm::ivec3 chunkToWorld(ChunkCoord c);
     [[nodiscard]] static ChunkCoord worldToChunk(int wx, int wy, int wz);
+    [[nodiscard]] static ChunkCoord worldToChunk(glm::ivec3 w);
     [[nodiscard]] static glm::ivec3 worldToLocal(int wx, int wy, int wz);
+    [[nodiscard]] static glm::ivec3 worldToLocal(glm::ivec3 w);
     [[nodiscard]] static ChunkCoord worldPosToChunk(const glm::vec3& worldPos);
     [[nodiscard]] static glm::ivec3 worldPosToBlock(const glm::vec3& worldPos);
 

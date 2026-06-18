@@ -1,4 +1,4 @@
-#include <hewnstead/core/glcheck.hpp>
+#include <hewnstead/core/gl_check.hpp>
 #include <hewnstead/render/shader.hpp>
 
 #include <glad/gl.h>
@@ -26,26 +26,6 @@ std::string readFile(std::string_view path) {
     buffer << file.rdbuf();
     return buffer.str();
 }
-
-class ShaderObject {
-public:
-    explicit ShaderObject(GLuint id) : m_id(id) {}
-    ~ShaderObject() {
-        if (m_id != 0) {
-            glDeleteShader(m_id);
-        }
-    }
-
-    ShaderObject(const ShaderObject&) = delete;
-    ShaderObject& operator=(const ShaderObject&) = delete;
-    ShaderObject(ShaderObject&&) = delete;
-    ShaderObject& operator=(ShaderObject&&) = delete;
-
-    [[nodiscard]] GLuint id() const { return m_id; }
-
-private:
-    GLuint m_id;
-};
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 GLuint compileShader(GLenum type, std::string_view source, std::string_view label) {
@@ -98,28 +78,22 @@ Shader::Shader(std::string_view vertPath, std::string_view fragPath) {
     const std::string vertSource = readFile(vertPath);
     const std::string fragSource = readFile(fragPath);
 
-    ShaderObject vert(compileShader(GL_VERTEX_SHADER, vertSource, vertPath));
-    ShaderObject frag(compileShader(GL_FRAGMENT_SHADER, fragSource, fragPath));
+    ShaderObjectHandle vert{(compileShader(GL_VERTEX_SHADER, vertSource, vertPath))};
+    ShaderObjectHandle frag{(compileShader(GL_FRAGMENT_SHADER, fragSource, fragPath))};
 
-    m_program = linkProgram(vert.id(), frag.id());
+    m_program = ProgramHandle{linkProgram(vert.get(), frag.get())};
 
     spdlog::info("Shader linked: {} + {}", vertPath, fragPath);
 }
 
-Shader::~Shader() {
-    if (m_program != 0) {
-        glDeleteProgram(m_program);
-    }
-}
-
 void Shader::use() const {
-    glUseProgram(m_program);
+    glUseProgram(m_program.get());
 }
 
 void Shader::setMat4(const std::string& name, const glm::mat4& value) const {
-    GLint location = glGetUniformLocation(m_program, name.c_str());
+    GLint location = glGetUniformLocation(m_program.get(), name.c_str());
     if (location < 0) {
-        spdlog::warn("Uniform '{}' not found in program {}", name, m_program);
+        spdlog::warn("Uniform '{}' not found in program {}", name, m_program.get());
         return;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
@@ -127,10 +101,11 @@ void Shader::setMat4(const std::string& name, const glm::mat4& value) const {
 }
 
 void Shader::setInt(const std::string& name, int value) const {
-    GLint location = glGetUniformLocation(m_program, name.c_str());
+    GLint location = glGetUniformLocation(m_program.get(), name.c_str());
 
-    if (location == -1) {
+    if (location < 0) {
         spdlog::warn("Shader uniform '{}' not found or unused", name);
+        return;
     }
 
     glUniform1i(location, value);

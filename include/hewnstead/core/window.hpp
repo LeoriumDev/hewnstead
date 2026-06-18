@@ -30,9 +30,12 @@ public:
 
     // Framebuffer (pixels)
     [[nodiscard]] int framebufferWidth() const { return m_fbWidth; }
+
     [[nodiscard]] int framebufferHeight() const { return m_fbHeight; }
+
     [[nodiscard]] float aspect() const {
-        return static_cast<float>(m_fbWidth) / static_cast<float>(m_fbHeight);
+        return m_fbHeight == 0 ? 1.0F
+                               : static_cast<float>(m_fbWidth) / static_cast<float>(m_fbHeight);
     }
 
     // Raw pointer for callbacks / GL function loading.
