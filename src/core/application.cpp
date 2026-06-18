@@ -1,17 +1,17 @@
-#include <hewnstead/render/frustum.hpp>
-#pragma region includes
-
 #include <hewnstead/core/application.hpp>
 #include <hewnstead/core/config.hpp>
 #include <hewnstead/render/debug_overlay.hpp>
+#include <hewnstead/render/frustum.hpp>
 #include <hewnstead/render/line_vertex.hpp>
 #include <hewnstead/render/mesher.hpp>
 #include <hewnstead/world/chunk.hpp>
+#include <hewnstead/world/worldgen.hpp>
 
 #include <glad/gl.h>
 
 #include <GLFW/glfw3.h>
 
+#include <FastNoise/Generators/Simplex.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
@@ -23,8 +23,6 @@
 #include <span>
 #include <stdexcept>
 #include <string_view>
-
-#pragma endregion
 
 namespace hs {
 
@@ -278,24 +276,14 @@ void drawCrosshair() {
 
 std::vector<ChunkCoord> initialGridCoord() {
     std::vector<ChunkCoord> coords;
-    for (int cz = -1; cz <= 1; ++cz) {
-        for (int cy = -1; cy <= 1; ++cy) {
-            for (int cx = -1; cx <= 1; ++cx) {
+    for (int cz = -2; cz <= 2; ++cz) {
+        for (int cy = -2; cy <= 2; ++cy) {
+            for (int cx = -2; cx <= 2; ++cx) {
                 coords.emplace_back(cx, cy, cz);
             }
         }
     }
     return coords;
-}
-
-void fillChunkSolid(const std::shared_ptr<Chunk>& chunk, BlockId block) {
-    for (int z = 0; z < Chunk::SIZE; ++z) {
-        for (int y = 0; y < Chunk::SIZE; ++y) {
-            for (int x = 0; x < Chunk::SIZE; ++x) {
-                chunk->set(x, y, z, block);
-            }
-        }
-    }
 }
 
 }  // namespace
@@ -306,10 +294,12 @@ Application::Application()
       m_lineShader(config::LINE_VERTEX_SHADER_PATH, config::LINE_FRAGMENT_SHADER_PATH),
       m_blockTextures(TEXTURE_PATHS) {
 
+    FastNoise::SmartNode<> noiseGen = FastNoise::New<FastNoise::Simplex>();
+
     m_coords = initialGridCoord();
     for (const ChunkCoord& coord : m_coords) {
         const auto chunk = m_chunkManager.loadChunk(coord);
-        fillChunkSolid(chunk, blocks::Stone);
+        worldgen::generateChunkTerrain(*chunk, coord, noiseGen);
     }
 
     // Cross-chunk meshing requires neighbors exist

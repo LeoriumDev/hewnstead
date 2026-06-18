@@ -50,6 +50,20 @@ CPMAddPackage(
     VERSION 2.5.2
 )
 
+set(_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
+string(APPEND CMAKE_CXX_FLAGS " -Wno-ignored-attributes")
+
+CPMAddPackage(
+    NAME FastNoise2
+    GITHUB_REPOSITORY Auburn/FastNoise2
+    GIT_TAG v1.1.1
+    OPTIONS
+        "FASTNOISE2_NOISETOOL OFF"
+        "FASTNOISE2_TESTS OFF"
+)
+
+set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
+
 CPMAddPackage(
     NAME imgui
     GITHUB_REPOSITORY ocornut/imgui
@@ -115,6 +129,7 @@ add_library(hewnstead_core STATIC
     src/world/chunk_manager.cpp
     src/world/chunk.cpp
     src/world/raycast.cpp
+    src/world/worldgen.cpp
 )
 target_include_directories(hewnstead_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -122,7 +137,7 @@ target_include_directories(hewnstead_core PUBLIC
 target_compile_features(hewnstead_core PUBLIC cxx_std_20)
 target_compile_definitions(hewnstead_core PUBLIC GLFW_INCLUDE_NONE)
 target_link_libraries(hewnstead_core
-    PUBLIC glm::glm spdlog::spdlog glfw glad hewnstead_imgui stb_image
+    PUBLIC glm::glm spdlog::spdlog glfw glad hewnstead_imgui stb_image FastNoise
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
