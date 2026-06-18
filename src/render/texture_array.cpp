@@ -58,8 +58,12 @@ TextureArray::TextureArray(std::span<const std::string_view> paths) {
     glGenTextures(1, &id);
     m_id = TextureHandle{id};
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_id.get());
-    glTexStorage3D(
-        GL_TEXTURE_2D_ARRAY, MIP_LEVELS, GL_RGBA8, TEXTURE_WIDTH, TEXTURE_HEIGHT, m_layerCount);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY,
+                   MIP_LEVELS,
+                   GL_SRGB8_ALPHA8,
+                   TEXTURE_WIDTH,
+                   TEXTURE_HEIGHT,
+                   m_layerCount);
 
     stbi_set_flip_vertically_on_load(1);
 
@@ -75,7 +79,7 @@ TextureArray::TextureArray(std::span<const std::string_view> paths) {
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     GL_CHECK();
 
-    spdlog::info("TextureArray: loaded {} layers, {}x{} GL_RGBA8",
+    spdlog::info("TextureArray: loaded {} layers, {}x{} GL_SRGB8_ALPHA8",
                  m_layerCount,
                  TEXTURE_WIDTH,
                  TEXTURE_HEIGHT);

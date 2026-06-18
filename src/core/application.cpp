@@ -59,6 +59,9 @@ void setupGlState() {
 
     // Explicit default
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    // Enable sRGB for texture
+    glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
 constexpr std::optional<BlockId> keyToBlock(int key) {
