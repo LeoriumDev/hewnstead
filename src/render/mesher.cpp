@@ -40,7 +40,7 @@ constexpr std::array<std::array<glm::vec2, 4>, FACE_COUNT> FACE_UVS = {{
     {{{0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}}},  // North  (-Z)
 }};
 
-constexpr std::array<float, FACE_COUNT> FACE_SHADE = {0.8F, 0.8F, 1.0F, 0.5F, 0.8F, 0.8F};
+constexpr std::array<float, FACE_COUNT> FACE_SHADE = {0.8F, 0.8F, 1.0F, 0.6F, 0.8F, 0.8F};
 
 void emitFace(std::vector<ChunkVertex>& out, glm::vec3 base, Face face, float layer) {
     const auto idx = static_cast<std::size_t>(face);

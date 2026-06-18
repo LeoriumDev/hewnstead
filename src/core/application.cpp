@@ -276,9 +276,9 @@ void drawCrosshair() {
 
 std::vector<ChunkCoord> initialGridCoord() {
     std::vector<ChunkCoord> coords;
-    for (int cz = -2; cz <= 2; ++cz) {
-        for (int cy = -2; cy <= 2; ++cy) {
-            for (int cx = -2; cx <= 2; ++cx) {
+    for (int cz = -3; cz <= 3; ++cz) {
+        for (int cy = -1; cy <= 1; ++cy) {
+            for (int cx = -3; cx <= 3; ++cx) {
                 coords.emplace_back(cx, cy, cz);
             }
         }

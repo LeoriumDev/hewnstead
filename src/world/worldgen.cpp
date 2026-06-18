@@ -6,10 +6,21 @@ namespace hs::worldgen {
 
 namespace {
 
-constexpr float FREQ = 0.9F;
+constexpr float FREQ = 0.5F;
 constexpr int BASE_HEIGHT = 32;
 constexpr int AMPLITUDE = 32;
 constexpr int SEED = 1337;
+constexpr int DIRT_DEPTH = 3;
+
+constexpr BlockId blockForDepth(int depth) {
+    if (depth == 0) {
+        return blocks::Grass;
+    }
+    if (depth <= DIRT_DEPTH) {
+        return blocks::Dirt;
+    }
+    return blocks::Stone;
+}
 
 }  // namespace
 
@@ -24,9 +35,11 @@ void generateChunkTerrain(Chunk& chunk, ChunkCoord coord, const FastNoise::Smart
             int h = BASE_HEIGHT + static_cast<int>(n * AMPLITUDE);
             for (int y = 0; y < Chunk::SIZE; y++) {
                 int wy = worldCoord.y + y;
-                if (wy < h) {
-                    chunk.set(x, y, z, blocks::Stone);
+                if (wy >= h) {
+                    continue;
                 }
+                int depth = (h - 1) - wy;
+                chunk.set(x, y, z, blockForDepth(depth));
             }
         }
     }
