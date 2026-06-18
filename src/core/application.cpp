@@ -1,5 +1,6 @@
 #include <hewnstead/core/application.hpp>
 #include <hewnstead/core/config.hpp>
+#include <hewnstead/core/profiler.hpp>
 #include <hewnstead/render/debug_overlay.hpp>
 #include <hewnstead/render/frustum.hpp>
 #include <hewnstead/render/line_vertex.hpp>
@@ -280,9 +281,9 @@ void drawCrosshair() {
 
 std::vector<ChunkCoord> initialGridCoord() {
     std::vector<ChunkCoord> coords;
-    for (int cz = -3; cz <= 3; ++cz) {
-        for (int cy = -1; cy <= 1; ++cy) {
-            for (int cx = -3; cx <= 3; ++cx) {
+    for (int cz = -4; cz <= 4; ++cz) {
+        for (int cy = -2; cy <= 2; ++cy) {
+            for (int cx = -4; cx <= 4; ++cx) {
                 coords.emplace_back(cx, cy, cz);
             }
         }
@@ -293,34 +294,31 @@ std::vector<ChunkCoord> initialGridCoord() {
 }  // namespace
 
 Application::Application()
-    : m_window(config::WINDOW_WIDTH, config::WINDOW_HEIGHT, config::TITLE),
+    : m_appStart(std::chrono::steady_clock::now()),
+      m_window(config::WINDOW_WIDTH, config::WINDOW_HEIGHT, config::TITLE),
       m_chunkShader(config::CHUNK_VERTEX_SHADER_PATH, config::CHUNK_FRAGMENT_SHADER_PATH),
       m_lineShader(config::LINE_VERTEX_SHADER_PATH, config::LINE_FRAGMENT_SHADER_PATH),
       m_blockTextures(TEXTURE_PATHS) {
-
+    auto bodyStart = std::chrono::steady_clock::now();
+    spdlog::info("[profile] context+shaders+textures: {:.1f} ms",
+                 std::chrono::duration<double, std::milli>(bodyStart - m_appStart).count());
     FastNoise::SmartNode<> noiseGen = FastNoise::New<FastNoise::Simplex>();
-
-    m_coords = initialGridCoord();
-    auto t0 = std::chrono::steady_clock::now();
-
-    for (const ChunkCoord& coord : m_coords) {
-        const auto chunk = m_chunkManager.loadChunk(coord);
-        worldgen::generateChunkTerrain(*chunk, coord, noiseGen);
+    {
+        ScopedTimer t{"worldgen"};
+        m_coords = initialGridCoord();
+        for (const ChunkCoord& coord : m_coords) {
+            const auto chunk = m_chunkManager.loadChunk(coord);
+            worldgen::generateChunkTerrain(*chunk, coord, noiseGen);
+        }
     }
-
-    auto t1 = std::chrono::steady_clock::now();
 
     // Cross-chunk meshing requires neighbors exist
-    for (const ChunkCoord& coord : m_coords) {
-        rebuildChunkMesh(coord);
+    {
+        ScopedTimer t{"meshing"};
+        for (const ChunkCoord& coord : m_coords) {
+            rebuildChunkMesh(coord);
+        }
     }
-
-    auto t2 = std::chrono::steady_clock::now();
-
-    auto ms = [](auto a, auto b) {
-        return std::chrono::duration<double, std::milli>(b - a).count();
-    };
-    spdlog::info("worldgen: {:.1f} ms | meshing: {:.1f} ms", ms(t0, t1), ms(t1, t2));
 
     m_window.attachInput(&m_input);
     m_imgui.emplace(m_window);
@@ -340,6 +338,7 @@ Application::Application()
 }
 
 void Application::run() {
+    bool firstFrame = true;
     while (!m_window.shouldClose()) {
         const auto now = glfwGetTime();
         auto dt = static_cast<float>(now - m_lastFrameTime);
@@ -349,6 +348,13 @@ void Application::run() {
         update(dt);
         render();
         m_window.swapBuffers();
+        if (firstFrame) {
+            auto ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() -
+                                                                m_appStart)
+                          .count();
+            spdlog::info("[profile] time to first frame: {:.1f} ms", ms);
+            firstFrame = false;
+        }
     }
 }
 
@@ -404,7 +410,6 @@ void Application::update(float dt) {
         auto chunk = m_chunkManager.getChunk(coord);
         if (chunk && chunk->isDirty()) {
             rebuildChunkMesh(coord);
-            chunk->clearDirty();
         }
     }
 }
@@ -464,6 +469,7 @@ void Application::rebuildChunkMesh(ChunkCoord coord) {
     BlockAccessor accessor{center, neighbors};
     auto vertices = mesher::buildMesh(accessor);
     m_chunkMesh[coord].upload(vertices);
+    center->clearDirty();
 }
 
 int Application::totalVertexCount() const {

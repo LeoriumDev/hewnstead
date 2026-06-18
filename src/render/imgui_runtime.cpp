@@ -1,11 +1,11 @@
 #include <hewnstead/core/window.hpp>
 #include <hewnstead/render/imgui_runtime.hpp>
 
+#include <imgui.h>
 #include <spdlog/spdlog.h>
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
-#include <imgui.h>
 
 namespace hs {
 

@@ -42,6 +42,8 @@ private:
     void render();
     [[nodiscard]] int totalVertexCount() const;
 
+    std::chrono::steady_clock::time_point m_appStart;
+
     // Declaration order IS construction order.
     // Window first: it creates the GL context every later GL-touching member depends on.
     Window m_window;

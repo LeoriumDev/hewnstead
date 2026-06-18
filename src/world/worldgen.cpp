@@ -6,7 +6,7 @@ namespace hs::worldgen {
 
 namespace {
 
-constexpr float FREQ = 0.5F;
+constexpr float FREQ = 0.7F;
 constexpr int BASE_HEIGHT = 32;
 constexpr int AMPLITUDE = 32;
 constexpr int SEED = 1337;
