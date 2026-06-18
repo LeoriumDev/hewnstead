@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <span>
 #include <stdexcept>
 #include <string_view>
@@ -300,15 +301,26 @@ Application::Application()
     FastNoise::SmartNode<> noiseGen = FastNoise::New<FastNoise::Simplex>();
 
     m_coords = initialGridCoord();
+    auto t0 = std::chrono::steady_clock::now();
+
     for (const ChunkCoord& coord : m_coords) {
         const auto chunk = m_chunkManager.loadChunk(coord);
         worldgen::generateChunkTerrain(*chunk, coord, noiseGen);
     }
 
+    auto t1 = std::chrono::steady_clock::now();
+
     // Cross-chunk meshing requires neighbors exist
     for (const ChunkCoord& coord : m_coords) {
         rebuildChunkMesh(coord);
     }
+
+    auto t2 = std::chrono::steady_clock::now();
+
+    auto ms = [](auto a, auto b) {
+        return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    spdlog::info("worldgen: {:.1f} ms | meshing: {:.1f} ms", ms(t0, t1), ms(t1, t2));
 
     m_window.attachInput(&m_input);
     m_imgui.emplace(m_window);
