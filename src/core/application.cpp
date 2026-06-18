@@ -1,3 +1,4 @@
+#include <hewnstead/render/frustum.hpp>
 #pragma region includes
 
 #include <hewnstead/core/application.hpp>
@@ -107,14 +108,14 @@ void handleSpecialKeys(hs::Input& input,
     }
 }
 
-void renderScene(const Shader& shader,
-                 const std::unordered_map<ChunkCoord, ChunkMesh>& meshes,
-                 const Camera& camera,
-                 const TextureArray& blockTextures,
-                 float aspect,
-                 bool wireframe,
-                 const LineMesh& lineMesh,
-                 const Shader& lineShader) {
+int renderScene(const Shader& shader,
+                const std::unordered_map<ChunkCoord, ChunkMesh>& meshes,
+                const Camera& camera,
+                const TextureArray& blockTextures,
+                float aspect,
+                bool wireframe,
+                const LineMesh& lineMesh,
+                const Shader& lineShader) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
@@ -122,17 +123,26 @@ void renderScene(const Shader& shader,
     glm::mat4 projection = glm::perspective(
         glm::radians(config::FOV_DEGREES), aspect, config::NEAR_PLANE, config::FAR_PLANE);
 
+    Frustum frustum{projection * view};
+
     shader.use();
     shader.setMat4("u_view", view);
     shader.setMat4("u_projection", projection);
     shader.setInt("u_blockTextures", 0);
     blockTextures.bind(0);
 
+    int drawn = 0;
     for (const auto& [coord, mesh] : meshes) {
-        const glm::vec3 origin = glm::vec3(ChunkManager::chunkToWorld(coord));
+        glm::vec3 min = glm::vec3(ChunkManager::chunkToWorld(coord));
+        glm::vec3 max = min + glm::vec3(Chunk::SIZE);
+        if (!frustum.isVisible(min, max)) {
+            continue;
+        }
+        const glm::vec3 origin = min;
         const glm::mat4 model = glm::translate(glm::mat4(1.0F), origin);
         shader.setMat4("u_model", model);
         mesh.draw();
+        drawn++;
     }
 
     if (lineMesh.vertexCount() > 0) {
@@ -142,6 +152,8 @@ void renderScene(const Shader& shader,
         lineShader.setMat4("u_projection", projection);
         lineMesh.draw();
     }
+
+    return drawn;
 }
 
 // Border edit: the neighbor chunk's facing surface may need re-meshing.
@@ -410,6 +422,8 @@ void Application::render() {
         .actualSamples = m_actualSamples,
         .lookingAt = m_lookingAt,
         .targetBlockName = m_targetBlockName,
+        .drawnChunks = m_drawnChunks,
+        .totalChunks = static_cast<int>(m_chunkMesh.size()),
     };
 
     drawHud(hud, debug, m_overlayVisible);
@@ -418,14 +432,14 @@ void Application::render() {
 
     // Scene
     glBeginQuery(GL_SAMPLES_PASSED, m_sampleQuery.get());
-    renderScene(m_chunkShader,
-                m_chunkMesh,
-                m_camera,
-                m_blockTextures,
-                m_window.aspect(),
-                m_wireframe,
-                m_lineMesh,
-                m_lineShader);
+    m_drawnChunks = renderScene(m_chunkShader,
+                                m_chunkMesh,
+                                m_camera,
+                                m_blockTextures,
+                                m_window.aspect(),
+                                m_wireframe,
+                                m_lineMesh,
+                                m_lineShader);
     glEndQuery(GL_SAMPLES_PASSED);
     glGetQueryObjectui64v(m_sampleQuery.get(), GL_QUERY_RESULT, &m_samplesPassed);
 

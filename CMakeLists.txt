@@ -104,6 +104,7 @@ add_library(hewnstead_core STATIC
     src/render/camera.cpp
     src/render/chunk_mesh.cpp
     src/render/debug_overlay.cpp
+    src/render/frustum.cpp
     src/render/imgui_runtime.cpp
     src/render/line_mesh.cpp
     src/render/mesher.cpp

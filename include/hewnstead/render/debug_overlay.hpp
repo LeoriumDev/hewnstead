@@ -27,6 +27,8 @@ struct DebugInfo {
     GLint actualSamples;
     std::optional<RaycastHit> lookingAt;
     const char* targetBlockName;
+    int drawnChunks;
+    int totalChunks;
 };
 
 void drawHud(const HudInfo& info, const DebugInfo& debug, bool showDebug);

@@ -83,6 +83,8 @@ private:
     GLint m_actualSamples = 1;
 
     std::vector<ChunkCoord> m_coords;
+
+    int m_drawnChunks = 0;
 };
 
 }  // namespace hs

@@ -1,9 +1,9 @@
 #include <hewnstead/render/debug_overlay.hpp>
 
 #include <glm/trigonometric.hpp>
+#include <imgui.h>
 
 #include <cmath>
-#include <imgui.h>
 
 namespace hs {
 
@@ -52,7 +52,7 @@ void drawHud(const HudInfo& info, const DebugInfo& debug, bool showDebug) {
                     debug.samplesPassed,
                     debug.samplesPassed / static_cast<GLuint64>(debug.actualSamples),
                     debug.actualSamples);
-
+        ImGui::Text("chunks: %d/%d", debug.drawnChunks, debug.totalChunks);
         ImGui::Text("raycast:");
         if (debug.lookingAt) {
             ImGui::Text("  cell: (%d, %d, %d)",
