@@ -281,9 +281,9 @@ void drawCrosshair() {
 
 std::vector<ChunkCoord> initialGridCoord() {
     std::vector<ChunkCoord> coords;
-    for (int cz = -4; cz <= 4; ++cz) {
-        for (int cy = -2; cy <= 2; ++cy) {
-            for (int cx = -4; cx <= 4; ++cx) {
+    for (int cz = -10; cz <= 10; ++cz) {
+        for (int cy = -5; cy <= 5; ++cy) {
+            for (int cx = -10; cx <= 10; ++cx) {
                 coords.emplace_back(cx, cy, cz);
             }
         }
@@ -302,13 +302,19 @@ Application::Application()
     auto bodyStart = std::chrono::steady_clock::now();
     spdlog::info("[profile] context+shaders+textures: {:.1f} ms",
                  std::chrono::duration<double, std::milli>(bodyStart - m_appStart).count());
-    FastNoise::SmartNode<> noiseGen = FastNoise::New<FastNoise::Simplex>();
+    auto simplex = FastNoise::New<FastNoise::Simplex>();
+    auto fbm = FastNoise::New<FastNoise::FractalFBm>();
+    fbm->SetSource(simplex);
+    fbm->SetOctaveCount(4);
+    fbm->SetLacunarity(2.0F);
+    fbm->SetGain(0.3F);
+
     {
         ScopedTimer t{"worldgen"};
         m_coords = initialGridCoord();
         for (const ChunkCoord& coord : m_coords) {
             const auto chunk = m_chunkManager.loadChunk(coord);
-            worldgen::generateChunkTerrain(*chunk, coord, noiseGen);
+            worldgen::generateChunkTerrain(*chunk, coord, fbm);
         }
     }
 

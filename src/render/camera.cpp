@@ -10,7 +10,7 @@ namespace hs {
 
 namespace {
 
-constexpr float SPEED = 15.0F;               // m/s
+constexpr float SPEED = 20.0F;               // m/s
 constexpr float MOUSE_SENSITIVITY = 0.002F;  // rad/pixel
 const float PITCH_LIMIT = glm::radians(89.0F);
 

@@ -8,8 +8,8 @@ namespace {
 
 constexpr float FREQ = 0.7F;
 constexpr int BASE_HEIGHT = 32;
-constexpr int AMPLITUDE = 32;
-constexpr int SEED = 1337;
+constexpr int AMPLITUDE = 64;
+constexpr int SEED = 4568;
 constexpr int DIRT_DEPTH = 3;
 
 constexpr BlockId blockForDepth(int depth) {
