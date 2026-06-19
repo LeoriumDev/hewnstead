@@ -32,14 +32,27 @@ namespace {
 
 constexpr glm::vec3 OUTLINE_COLOR{0.0F, 0.0F, 0.0F};
 
-constexpr std::array<std::string_view, 7> TEXTURE_PATHS = {
-    "assets/textures/blocks/stone.png",       // layer 0
-    "assets/textures/blocks/dirt.png",        // layer 1
-    "assets/textures/blocks/log_side.png",    // layer 2
-    "assets/textures/blocks/log_top.png",     // layer 3
-    "assets/textures/blocks/planks.png",      // layer 4
-    "assets/textures/blocks/grass_top.png",   // layer 5
-    "assets/textures/blocks/grass_side.png",  // layer 6
+constexpr std::array<std::string_view, 20> TEXTURE_PATHS = {
+    "assets/textures/blocks/stone.png",              // layer 0
+    "assets/textures/blocks/dirt.png",               // layer 1
+    "assets/textures/blocks/log_side.png",           // layer 2
+    "assets/textures/blocks/log_top.png",            // layer 3
+    "assets/textures/blocks/planks.png",             // layer 4
+    "assets/textures/blocks/grass_top.png",          // layer 5
+    "assets/textures/blocks/grass_side.png",         // layer 6
+    "assets/textures/blocks/bricks.png",             // layer 7
+    "assets/textures/blocks/clay.png",               // layer 8
+    "assets/textures/blocks/coal_ore.png",           // layer 9
+    "assets/textures/blocks/cobblestone.png",        // layer 10
+    "assets/textures/blocks/copper_ore.png",         // layer 11
+    "assets/textures/blocks/gravel.png",             // layer 12
+    "assets/textures/blocks/iron_ore.png",           // layer 13
+    "assets/textures/blocks/leaves.png",             // layer 14
+    "assets/textures/blocks/mossy_cobblestone.png",  // layer 15
+    "assets/textures/blocks/sand.png",               // layer 16
+    "assets/textures/blocks/snow.png",               // layer 17
+    "assets/textures/blocks/stone_bricks.png",       // layer 18
+    "assets/textures/blocks/thatch.png",             // layer 19
 };
 
 constexpr float FPS_SAMPLE_INTERVAL = 0.5F;
@@ -66,23 +79,11 @@ void setupGlState() {
     glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
-constexpr std::optional<BlockId> keyToBlock(int key) {
-    switch (key) {
-    case GLFW_KEY_1: return blocks::Stone;
-    case GLFW_KEY_2: return blocks::Dirt;
-    case GLFW_KEY_3: return blocks::Log;
-    case GLFW_KEY_4: return blocks::Planks;
-    case GLFW_KEY_5: return blocks::Grass;
-    default: return std::nullopt;
-    }
-}
-
 void handleBlockHotkeys(const Input& input, BlockId& selectedBlock) {
-    for (int key = GLFW_KEY_1; key <= GLFW_KEY_5; ++key) {
+    for (int key = GLFW_KEY_0; key <= GLFW_KEY_9; ++key) {
         if (input.justPressed(key)) {
-            if (auto blk = keyToBlock(key)) {
-                selectedBlock = *blk;
-            }
+            selectedBlock = static_cast<BlockId>(key - GLFW_KEY_0 +
+                                                 (input.isDown(GLFW_KEY_LEFT_CONTROL) ? 9 : 0));
         }
     }
 }
@@ -307,7 +308,7 @@ Application::Application()
     fbm->SetSource(simplex);
     fbm->SetOctaveCount(4);
     fbm->SetLacunarity(2.0F);
-    fbm->SetGain(0.3F);
+    fbm->SetGain(0.4F);
 
     {
         ScopedTimer t{"worldgen"};

@@ -5,6 +5,7 @@
 #include <stb_image.h>
 
 #include <cassert>
+#include <cmath>
 #include <stdexcept>
 
 namespace hs {
@@ -13,7 +14,6 @@ namespace {
 
 constexpr GLsizei TEXTURE_WIDTH = 32;
 constexpr GLsizei TEXTURE_HEIGHT = 32;
-constexpr GLint MIP_LEVELS = 1;
 
 void uploadLayer(std::string_view path, GLint layer) {
     int loadedW = 0;
@@ -52,14 +52,14 @@ void uploadLayer(std::string_view path, GLint layer) {
 
 TextureArray::TextureArray(std::span<const std::string_view> paths) {
     assert(!paths.empty() && "TextureArray needs at least one texture");
-
+    const GLsizei mipLevels = 1 + static_cast<GLsizei>(std::floor(std::log2(TEXTURE_WIDTH)));
     m_layerCount = static_cast<GLsizei>(paths.size());
     unsigned int id = 0;
     glGenTextures(1, &id);
     m_id = TextureHandle{id};
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_id.get());
     glTexStorage3D(GL_TEXTURE_2D_ARRAY,
-                   MIP_LEVELS,
+                   mipLevels,
                    GL_SRGB8_ALPHA8,
                    TEXTURE_WIDTH,
                    TEXTURE_HEIGHT,
@@ -71,7 +71,8 @@ TextureArray::TextureArray(std::span<const std::string_view> paths) {
         uploadLayer(paths[static_cast<std::size_t>(layer)], layer);
     }
 
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
