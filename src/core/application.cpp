@@ -228,11 +228,7 @@ void handlePickBlock(const Input& input,
     if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_MIDDLE) || !lookingAt) {
         return;
     }
-    const std::shared_ptr<Chunk> chunk = cm.getChunk(ChunkManager::worldToChunk(lookingAt->cell));
-    if (!chunk) {
-        return;
-    }
-    BlockId target = chunk->getOrAir(lookingAt->cell);
+    BlockId target = cm.blockAt(lookingAt->cell);
     if (target != blocks::Air) {
         selectedBlock = target;
     }

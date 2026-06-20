@@ -68,4 +68,17 @@ ChunkCoord ChunkManager::worldPosToChunk(const glm::vec3& worldPos) {
     return worldToChunk(b.x, b.y, b.z);
 }
 
+BlockId ChunkManager::blockAt(glm::ivec3 worldCoord) const {
+    ChunkCoord chunkCoord = worldToChunk(worldCoord);
+    std::shared_ptr<Chunk> chunk = getChunk(chunkCoord);
+    if (!chunk) {
+        return blocks::Air;
+    }
+    return chunk->getOrAir(worldToLocal(worldCoord));
+}
+
+BlockId ChunkManager::blockAt(int wx, int wy, int wz) const {
+    return blockAt({wx, wy, wz});
+}
+
 }  // namespace hs

@@ -27,6 +27,10 @@ public:
     [[nodiscard]] std::shared_ptr<Chunk> getChunk(ChunkCoord c) const;
     [[nodiscard]] std::size_t chunkCount() const;
 
+    // Cell accessor
+    [[nodiscard]] BlockId blockAt(glm::ivec3 worldCoord) const;
+    [[nodiscard]] BlockId blockAt(int wx, int wy, int wz) const;
+
     // World-coord conversion
     [[nodiscard]] static glm::ivec3 chunkToWorld(ChunkCoord c);
     [[nodiscard]] static ChunkCoord worldToChunk(int wx, int wy, int wz);
