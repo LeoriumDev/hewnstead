@@ -10,12 +10,14 @@ class Camera {
 public:
     Camera() = default;
 
-    void update(const Input& input, float dt);
+    void setView(glm::vec3 eyePos, float yaw, float pitch);
 
     [[nodiscard]] glm::mat4 viewMatrix() const;
 
-    [[nodiscard]] float yaw() const { return m_yaw; }      // in radians
+    [[nodiscard]] float yaw() const { return m_yaw; }  // in radians
+
     [[nodiscard]] float pitch() const { return m_pitch; }  // in radians
+
     [[nodiscard]] glm::vec3 position() const { return m_position; }
 
     [[nodiscard]] glm::vec3 forward() const;
@@ -23,13 +25,7 @@ public:
     [[nodiscard]] glm::vec3 up() const;
 
 private:
-    [[nodiscard]] glm::vec3 horizontalForward() const;
-
-    static constexpr float INITIAL_X = 0.0F;
-    static constexpr float INITIAL_Y = 80.0F;
-    static constexpr float INITIAL_Z = 0.0F;
-
-    glm::vec3 m_position{INITIAL_X, INITIAL_Y, INITIAL_Z};
+    glm::vec3 m_position{};
     float m_yaw{0.0F};    // in radians
     float m_pitch{0.0F};  // in radians
 };

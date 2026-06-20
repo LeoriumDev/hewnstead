@@ -2,6 +2,7 @@
 
 #include <hewnstead/core/input.hpp>
 #include <hewnstead/core/window.hpp>
+#include <hewnstead/physics/player.hpp>
 #include <hewnstead/render/camera.hpp>
 #include <hewnstead/render/chunk_mesh.hpp>
 #include <hewnstead/render/imgui_runtime.hpp>
@@ -17,7 +18,6 @@
 
 #include <glm/ext/vector_int3.hpp>
 
-#include <memory>
 #include <optional>
 #include <unordered_map>
 
@@ -53,6 +53,7 @@ private:
     ChunkManager m_chunkManager;
     Input m_input;
     Camera m_camera;
+    Player m_player;
 
     // Emplaced post-attachInput so ImGui chains our GLFW callbacks
     std::optional<ImguiRuntime> m_imgui;

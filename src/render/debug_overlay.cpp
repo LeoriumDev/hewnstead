@@ -29,7 +29,7 @@ void drawHud(const HudInfo& info, const DebugInfo& debug, bool showDebug) {
 
     // Always-on
     ImGui::Text(
-        "pos: x: %.2f, y: %.2f, z: %.2f", info.cameraPos.x, info.cameraPos.y, info.cameraPos.z);
+        "pos: x: %.2f, y: %.2f, z: %.2f", info.playerPos.x, info.playerPos.y, info.playerPos.z);
     ImGui::Text("fps: %.0f", info.fps);
     ImGui::Text("block: %s", blockName(info.selectedBlock));
 

@@ -301,6 +301,7 @@ Application::Application()
       m_lineShader(config::LINE_VERTEX_SHADER_PATH, config::LINE_FRAGMENT_SHADER_PATH),
       m_blockTextures(TEXTURE_PATHS) {
     auto bodyStart = std::chrono::steady_clock::now();
+    m_player.position = {0.0F, 100.0F, 0.0F};
     spdlog::info("[profile] context+shaders+textures: {:.1f} ms",
                  std::chrono::duration<double, std::milli>(bodyStart - m_appStart).count());
     auto simplex = FastNoise::New<FastNoise::Simplex>();
@@ -385,7 +386,8 @@ void Application::update(float dt) {
     handleBlockHotkeys(m_input, m_selectedBlock);
 
     // Simulation
-    m_camera.update(m_input, dt);
+    m_player.update(m_input, dt);
+    m_camera.setView(m_player.eyePosition(), m_player.yaw, m_player.pitch);
 
     // Targeting
     m_lookingAt =
@@ -426,7 +428,7 @@ void Application::render() {
     m_imgui->beginFrame();
 
     const HudInfo hud{
-        .cameraPos = m_camera.position(),
+        .playerPos = m_player.position,
         .selectedBlock = m_selectedBlock,
         .fps = m_fps,
     };

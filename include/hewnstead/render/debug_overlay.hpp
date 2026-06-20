@@ -13,7 +13,7 @@ namespace hs {
 
 // Always-on section
 struct HudInfo {
-    glm::vec3 cameraPos;
+    glm::vec3 playerPos;
     BlockId selectedBlock;
     float fps;
 };
