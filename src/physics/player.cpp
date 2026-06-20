@@ -8,14 +8,28 @@ namespace hs {
 
 namespace {
 
-constexpr float SPEED = 10.0F;               // m/s
+constexpr float SPEED = 5.0F;                // m/s
+constexpr float FLY_SPEED = 15.0F;           // m/s
 constexpr float GRAVITY = -28.0F;            // m/s^2
 constexpr float DOUBLE_TAP_WINDOW = 0.28F;   // in seconds
 constexpr float MOUSE_SENSITIVITY = 0.002F;  // rad/pixel
 const float PITCH_LIMIT = glm::radians(89.0F);
 
 constexpr float MOVEMENT_EPSILON = 0.0001F;
-constexpr float SKIN_WIDTH = 0.001F;
+constexpr float SKIN_WIDTH = 0.00001F;
+constexpr float JUMP_HEIGHT = 1.25F;
+
+constexpr float ACCEL = 50.0F;
+constexpr float AIR_ACCEL = 10.0F;
+constexpr float FRICTION = 30.0F;
+
+glm::vec3 moveToward(glm::vec3 current, glm::vec3 target, float maxStep) {
+    glm::vec3 diff = target - current;
+    if (glm::length(diff) <= maxStep) {
+        return target;
+    }
+    return current + glm::normalize(diff) * maxStep;
+}
 
 }  // namespace
 
@@ -69,14 +83,37 @@ void Player::update(const ChunkManager& cm, const Input& input, float dt) {
         if (glm::length(wishDir) > MOVEMENT_EPSILON) {
             wishDir = glm::normalize(wishDir);
         }
-        velocity = wishDir * SPEED;
+        const bool hasInput = input.isDown(GLFW_KEY_SPACE) || input.isDown(GLFW_KEY_LEFT_SHIFT) ||
+                              input.isDown(GLFW_KEY_W) || input.isDown(GLFW_KEY_S) ||
+                              input.isDown(GLFW_KEY_A) || input.isDown(GLFW_KEY_D);
+        float step = (hasInput ? ACCEL : FRICTION) * dt;
+        glm::vec3 target = hasInput ? wishDir * FLY_SPEED : glm::vec3{0.0F, 0.0F, 0.0F};
+        velocity = moveToward(velocity, target, step);
     } else {
         if (glm::length(wishDir) > MOVEMENT_EPSILON) {
             wishDir = glm::normalize(wishDir);
         }
-        velocity.x = wishDir.x * SPEED;
-        velocity.z = wishDir.z * SPEED;
+
+        const bool hasInput = input.isDown(GLFW_KEY_W) || input.isDown(GLFW_KEY_S) ||
+                              input.isDown(GLFW_KEY_A) || input.isDown(GLFW_KEY_D);
+        glm::vec3 horiz{velocity.x, 0.0F, velocity.z};
+        glm::vec3 target = hasInput ? glm::vec3{wishDir.x * SPEED, 0.0F, wishDir.z * SPEED}
+                                    : glm::vec3{0.0F, 0.0F, 0.0F};
+        float step;
+        if (onGround) {
+            step = (hasInput ? ACCEL : FRICTION) * dt;
+        } else {
+            step = (hasInput ? AIR_ACCEL : FRICTION) * dt;
+        }
+        horiz = moveToward(horiz, target, step);
+        velocity.x = horiz.x;
+        velocity.z = horiz.z;
+
+        if (onGround && input.isDown(GLFW_KEY_SPACE)) {
+            velocity.y = std::sqrt(2 * std::abs(GRAVITY) * JUMP_HEIGHT);
+        }
         velocity.y += GRAVITY * dt;
+        onGround = false;
     }
 
     for (auto axis : {0, 1, 2}) {
@@ -102,7 +139,7 @@ void Player::update(const ChunkManager& cm, const Input& input, float dt) {
 }
 
 glm::vec3 Player::eyePosition() const {
-    constexpr float EYE_HEIGHT = 1.5F;
+    constexpr float EYE_HEIGHT = 1.7F;
     return {position.x, position.y + EYE_HEIGHT, position.z};
 };
 
