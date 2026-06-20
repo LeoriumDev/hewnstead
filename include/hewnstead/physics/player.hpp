@@ -12,6 +12,8 @@ struct Player {
     float yaw{};
     float pitch{};
     bool onGround{false};
+    bool flying{false};
+    float spaceTapTimer{0.0F};
 
     void update(const Input& input, float dt);
     [[nodiscard]] glm::vec3 eyePosition() const;
