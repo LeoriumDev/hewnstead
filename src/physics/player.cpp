@@ -1,4 +1,5 @@
-#include "hewnstead/core/orientation.hpp"
+#include <hewnstead/core/orientation.hpp>
+#include <hewnstead/physics/collision.hpp>
 #include <hewnstead/physics/player.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -7,17 +8,18 @@ namespace hs {
 
 namespace {
 
-constexpr float SPEED = 20.0F;               // m/s
+constexpr float SPEED = 10.0F;               // m/s
 constexpr float GRAVITY = -28.0F;            // m/s^2
 constexpr float DOUBLE_TAP_WINDOW = 0.28F;   // in seconds
 constexpr float MOUSE_SENSITIVITY = 0.002F;  // rad/pixel
 const float PITCH_LIMIT = glm::radians(89.0F);
 
 constexpr float MOVEMENT_EPSILON = 0.0001F;
+constexpr float SKIN_WIDTH = 0.001F;
 
 }  // namespace
 
-void Player::update(const Input& input, float dt) {
+void Player::update(const ChunkManager& cm, const Input& input, float dt) {
     if (input.uiWantsKeyboard()) {
         return;
     }
@@ -77,7 +79,26 @@ void Player::update(const Input& input, float dt) {
         velocity.y += GRAVITY * dt;
     }
 
-    position += velocity * dt;
+    for (auto axis : {0, 1, 2}) {
+        position[axis] += velocity[axis] * dt;
+        constexpr glm::vec3 lowExtent = {PLAYER_HITBOX.x / 2, 0, PLAYER_HITBOX.z / 2};
+        constexpr glm::vec3 highExtent = {
+            PLAYER_HITBOX.x / 2, PLAYER_HITBOX.y, PLAYER_HITBOX.z / 2};
+
+        if (collision::aabbHitsWorld(cm, position, PLAYER_HITBOX)) {
+            if (velocity[axis] >= 0.0F) {
+                position[axis] =
+                    std::floor(position[axis] + highExtent[axis]) - highExtent[axis] - SKIN_WIDTH;
+            } else if (velocity[axis] < 0.0F) {
+                position[axis] =
+                    std::floor(position[axis] - lowExtent[axis] + 1) + lowExtent[axis] + SKIN_WIDTH;
+            }
+            if (axis == 1 && velocity[axis] < 0.0F) {
+                onGround = true;
+            }
+            velocity[axis] = 0.0F;
+        }
+    }
 }
 
 glm::vec3 Player::eyePosition() const {

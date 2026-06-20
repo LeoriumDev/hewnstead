@@ -116,6 +116,7 @@ add_library(hewnstead_core STATIC
     src/core/splash.cpp
     src/core/window.cpp
     src/physics/player.cpp
+    src/physics/collision.cpp
     src/render/camera.cpp
     src/render/chunk_mesh.cpp
     src/render/debug_overlay.cpp

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hewnstead/core/input.hpp"
+#include "hewnstead/world/chunk_manager.hpp"
 
 #include "glm/ext/vector_float3.hpp"
 
@@ -15,8 +16,10 @@ struct Player {
     bool flying{false};
     float spaceTapTimer{0.0F};
 
-    void update(const Input& input, float dt);
+    void update(const ChunkManager& cm, const Input& input, float dt);
     [[nodiscard]] glm::vec3 eyePosition() const;
 };
+
+constexpr glm::vec3 PLAYER_HITBOX = {0.6, 1.8, 0.6};
 
 }  // namespace hs

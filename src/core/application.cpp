@@ -1,3 +1,4 @@
+#include "hewnstead/physics/collision.hpp"
 #include <hewnstead/core/application.hpp>
 #include <hewnstead/core/config.hpp>
 #include <hewnstead/core/profiler.hpp>
@@ -382,7 +383,7 @@ void Application::update(float dt) {
     handleBlockHotkeys(m_input, m_selectedBlock);
 
     // Simulation
-    m_player.update(m_input, dt);
+    m_player.update(m_chunkManager, m_input, dt);
     m_camera.setView(m_player.eyePosition(), m_player.yaw, m_player.pitch);
 
     // Targeting
