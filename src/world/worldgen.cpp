@@ -2,6 +2,8 @@
 #include <hewnstead/world/chunk_manager.hpp>
 #include <hewnstead/world/worldgen.hpp>
 
+#include <cstdint>
+
 namespace hs::worldgen {
 
 namespace {
@@ -14,6 +16,10 @@ constexpr int SEED = 2053;
 constexpr int DIRT_DEPTH = 5;
 constexpr int SNOW_DEPTH = 3;
 constexpr int STONE_DEPTH = 5;
+
+constexpr int SNOW_LINE_HEIGHT = 80;
+constexpr int STONE_LINE_HEIGHT = 30;
+constexpr int GRASS_LINE_HEIGHT = -30;
 
 constexpr float SNOW_JITTER_FREQ = 3.0F;
 constexpr int SNOW_JITTER = 6;
@@ -31,20 +37,32 @@ constexpr int CELL = 8;      //  spacing between trees
 constexpr int CANOPY_R = 2;  // canopy radius
 
 constexpr std::uint32_t hashCell(int cx, int cz, std::uint32_t salt) {
-    auto h = (static_cast<std::uint32_t>(cx) * 0x9E3779B1u) ^
-             (static_cast<std::uint32_t>(cz) * 0x85EBCA77u) ^ salt;
-    h ^= h >> 15;
-    h *= 0xC2B2AE3Du;
-    h ^= h >> 13;
+    constexpr std::uint32_t HASH_PRIME_1 = 0x9E3779B1U;
+    constexpr std::uint32_t HASH_PRIME_2 = 0x85EBCA77U;
+    constexpr std::uint32_t HASH_PRIME_3 = 0xC2B2AE3DU;
+    constexpr int FOLD_SHIFT_1 = 15;
+    constexpr int FOLD_SHIFT_2 = 13;
+    auto h = (static_cast<std::uint32_t>(cx) * HASH_PRIME_1) ^
+             (static_cast<std::uint32_t>(cz) * HASH_PRIME_2) ^ salt;
+    h ^= h >> FOLD_SHIFT_1;
+    h *= HASH_PRIME_3;
+    h ^= h >> FOLD_SHIFT_2;
     return h;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 constexpr BlockId blockForDepth(int depth, int wy, int snowLine, int stoneLine, int grassLine) {
     if (depth == 0) {
-        return wy > snowLine      ? blocks::Snow
-               : (wy > stoneLine) ? blocks::Stone
-               : (wy > grassLine) ? blocks::Grass
-                                  : blocks::Sand;
+        if (wy > snowLine) {
+            return blocks::Snow;
+        }
+        if (wy > stoneLine) {
+            return blocks::Stone;
+        }
+        if (wy > grassLine) {
+            return blocks::Grass;
+        }
+        return blocks::Sand;
     }
     if (wy > snowLine && depth <= SNOW_DEPTH) {
         return blocks::Snow;
@@ -63,15 +81,46 @@ int surfaceHeight(int wx, int wz, const FastNoise::SmartNode<>& gen) {
     return BASE_HEIGHT + static_cast<int>(n * AMPLITUDE);
 }
 
-void stampTree(Chunk& chunk, ChunkCoord coord, int bx, int by, int bz, std::uint32_t h) {
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+bool canopyGroundOk(int bx, int bz, int canopyBottomY, const FastNoise::SmartNode<>& gen) {
+    for (int dx = -CANOPY_R; dx <= CANOPY_R; dx++) {
+        for (int dz = -CANOPY_R; dz <= CANOPY_R; dz++) {
+            int sh = surfaceHeight(bx + dx, bz + dz, gen);
+            if (sh > canopyBottomY) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+void stampTree(Chunk& chunk,
+               ChunkCoord coord,
+               int bx,
+               int by,
+               int bz,
+               const FastNoise::SmartNode<>& gen,
+               std::uint32_t h) {
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     auto place = [&](int wx, int wy, int wz, BlockId id) {
         if (ChunkManager::worldToChunk(wx, wy, wz) != coord) {
             return;
         }
-        chunk.set(ChunkManager::worldToLocal(wx, wy, wz), id);
+        glm::ivec3 local = ChunkManager::worldToLocal(wx, wy, wz);
+        if (chunk.getOrAir(local) == blocks::Air) {
+            chunk.set(local, id);
+        }
     };
-    int trunkH = 4 + static_cast<int>((h >> 9) & 3);
+    constexpr int TRUNK_HASH_BIT_SHIFT = 9;
+    int trunkH = 4 + static_cast<int>((h >> TRUNK_HASH_BIT_SHIFT) & 3);
     int top = by + trunkH;
+    if (!canopyGroundOk(bx, bz, top - 2, gen)) {
+        return;
+    }
+    for (int wy = by; wy < top; ++wy) {
+        place(bx, wy, bz, blocks::Log);
+    }
     for (int dy = 0; dy < 2; ++dy) {
         for (int dx = -CANOPY_R; dx <= CANOPY_R; ++dx) {
             for (int dz = -CANOPY_R; dz <= CANOPY_R; ++dz) {
@@ -91,9 +140,6 @@ void stampTree(Chunk& chunk, ChunkCoord coord, int bx, int by, int bz, std::uint
             }
         }
     }
-    for (int wy = by; wy < top; ++wy) {
-        place(bx, wy, bz, blocks::Log);
-    }
 }
 
 constexpr int floorDiv(int a, int b) {
@@ -104,33 +150,24 @@ constexpr int floorDiv(int a, int b) {
 
 void generateChunkTerrain(Chunk& chunk, ChunkCoord coord, const FastNoise::SmartNode<>& generator) {
     glm::ivec3 worldCoord = ChunkManager::chunkToWorld(coord);
-    auto surfaceBlockTop = [&](int wx, int wz) -> BlockId {
-        int h = surfaceHeight(wx, wz, generator);
-        auto line = [&](float f, int seed, int base, int amp) {
-            float v = generator->GenSingle2D(
-                static_cast<float>(wx) * f, static_cast<float>(wz) * f, seed);
-            return base + static_cast<int>(v * static_cast<float>(amp));
-        };
-        int snowL = line(SNOW_JITTER_FREQ, SNOW_JITTER_SEED, 80, SNOW_JITTER);
-        int stoneL = line(STONE_JITTER_FREQ, STONE_JITTER_SEED, 30, STONE_JITTER);
-        int grassL = line(GRASS_JITTER_FREQ, GRASS_JITTER_SEED, -30, GRASS_JITTER);
-        return blockForDepth(0, h - 1, snowL, stoneL, grassL);
-    };
 
-    // --- terrain pass ---
+    // terrain pass
     for (int z = 0; z < Chunk::SIZE; ++z) {
         for (int x = 0; x < Chunk::SIZE; ++x) {
             int wx = worldCoord.x + x;
             int wz = worldCoord.z + z;
             int h = surfaceHeight(wx, wz, generator);
+            // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
             auto line = [&](float f, int seed, int base, int amp) {
                 float v = generator->GenSingle2D(
                     static_cast<float>(wx) * f, static_cast<float>(wz) * f, seed);
                 return base + static_cast<int>(v * static_cast<float>(amp));
             };
-            int snowLine = line(SNOW_JITTER_FREQ, SNOW_JITTER_SEED, 80, SNOW_JITTER);
-            int stoneLine = line(STONE_JITTER_FREQ, STONE_JITTER_SEED, 30, STONE_JITTER);
-            int grassLine = line(GRASS_JITTER_FREQ, GRASS_JITTER_SEED, -30, GRASS_JITTER);
+            int snowLine = line(SNOW_JITTER_FREQ, SNOW_JITTER_SEED, SNOW_LINE_HEIGHT, SNOW_JITTER);
+            int stoneLine =
+                line(STONE_JITTER_FREQ, STONE_JITTER_SEED, STONE_LINE_HEIGHT, STONE_JITTER);
+            int grassLine =
+                line(GRASS_JITTER_FREQ, GRASS_JITTER_SEED, GRASS_LINE_HEIGHT, GRASS_JITTER);
             for (int y = 0; y < Chunk::SIZE; ++y) {
                 int wy = worldCoord.y + y;
                 if (wy >= h) {
@@ -141,7 +178,22 @@ void generateChunkTerrain(Chunk& chunk, ChunkCoord coord, const FastNoise::Smart
             }
         }
     }
-    // --- tree pass ---
+
+    // tree pass
+    auto surfaceBlockTop = [&](int wx, int wz) -> BlockId {
+        int h = surfaceHeight(wx, wz, generator);
+        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+        auto line = [&](float f, int seed, int base, int amp) {
+            float v = generator->GenSingle2D(
+                static_cast<float>(wx) * f, static_cast<float>(wz) * f, seed);
+            return base + static_cast<int>(v * static_cast<float>(amp));
+        };
+        int snowL = line(SNOW_JITTER_FREQ, SNOW_JITTER_SEED, SNOW_LINE_HEIGHT, SNOW_JITTER);
+        int stoneL = line(STONE_JITTER_FREQ, STONE_JITTER_SEED, STONE_LINE_HEIGHT, STONE_JITTER);
+        int grassL = line(GRASS_JITTER_FREQ, GRASS_JITTER_SEED, GRASS_LINE_HEIGHT, GRASS_JITTER);
+        return blockForDepth(0, h - 1, snowL, stoneL, grassL);
+    };
+
     int cx0 = floorDiv(worldCoord.x - CANOPY_R, CELL);
     int cx1 = floorDiv(worldCoord.x + Chunk::SIZE + CANOPY_R, CELL);
     int cz0 = floorDiv(worldCoord.z - CANOPY_R, CELL);
@@ -149,16 +201,19 @@ void generateChunkTerrain(Chunk& chunk, ChunkCoord coord, const FastNoise::Smart
     for (int cellX = cx0; cellX <= cx1; ++cellX) {
         for (int cellZ = cz0; cellZ <= cz1; ++cellZ) {
             std::uint32_t ha = hashCell(cellX, cellZ, 1);
-            if ((ha & 7) != 0) {
+            constexpr int PLACE_TREE_BIT_MASK = 7;
+            if ((ha & PLACE_TREE_BIT_MASK) != 0) {
                 continue;
             }
-            int bx = (cellX * CELL) + static_cast<int>((ha >> 3) & 7);
-            int bz = (cellZ * CELL) + static_cast<int>((ha >> 6) & 7);
+            constexpr int BX_BIT_SHIFT = 3;
+            constexpr int BZ_BIT_SHIFT = 6;
+            int bx = (cellX * CELL) + static_cast<int>((ha >> BX_BIT_SHIFT) & PLACE_TREE_BIT_MASK);
+            int bz = (cellZ * CELL) + static_cast<int>((ha >> BZ_BIT_SHIFT) & PLACE_TREE_BIT_MASK);
             if (surfaceBlockTop(bx, bz) != blocks::Grass) {
                 continue;
             }
             int by = surfaceHeight(bx, bz, generator);
-            stampTree(chunk, coord, bx, by, bz, ha);
+            stampTree(chunk, coord, bx, by, bz, generator, ha);
         }
     }
 }
