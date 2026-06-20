@@ -25,7 +25,7 @@ constexpr float CLEAR_A = 1.00F;
 constexpr float DT_CAP = 0.1F;
 
 // Camera projection
-constexpr float FOV_DEGREES = 60.0F;
+constexpr float FOV_DEGREES = 90.0F;
 constexpr float NEAR_PLANE = 0.1F;
 constexpr float FAR_PLANE = 1000.0F;
 

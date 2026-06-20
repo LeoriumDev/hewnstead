@@ -204,22 +204,33 @@ bool setWorldBlock(ChunkManager& cm, glm::ivec3 cell, BlockId block, bool onlyIf
 
 void handleBreakBlock(const Input& input,
                       ChunkManager& cm,
-                      const std::optional<RaycastHit>& lookingAt) {
-    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_LEFT) || !lookingAt) {
-        return;
+                      float dt,
+                      const std::optional<RaycastHit>& lookingAt,
+                      float& cooldown) {
+    cooldown = std::max(0.0F, cooldown - dt);
+    if (input.isMouseDown(GLFW_MOUSE_BUTTON_LEFT) && lookingAt) {
+        if (cooldown == 0.0F) {
+            setWorldBlock(cm, lookingAt->cell, blocks::Air);
+            cooldown = 0.25F;
+        }
     }
-    setWorldBlock(cm, lookingAt->cell, blocks::Air);
 }
 
 void handlePlaceBlock(const Input& input,
                       ChunkManager& cm,
+                      float dt,
                       const std::optional<RaycastHit>& lookingAt,
-                      BlockId selectedBlock) {
-    if (!input.mouseJustPressed(GLFW_MOUSE_BUTTON_RIGHT) || !lookingAt || !lookingAt->face) {
-        return;
-    }
+                      BlockId selectedBlock,
+                      float& cooldown,
+                      glm::vec3 feet,
+                      glm::vec3 size) {
+    cooldown = std::max(0.0F, cooldown - dt);
     const glm::ivec3 placeCell = lookingAt->cell + hs::faceNormal(*lookingAt->face);
-    setWorldBlock(cm, placeCell, selectedBlock, true);
+    if (input.isMouseDown(GLFW_MOUSE_BUTTON_RIGHT) && lookingAt && lookingAt->face &&
+        cooldown == 0.0F && !collision::aabbOverlapsCell(feet, size, placeCell)) {
+        setWorldBlock(cm, placeCell, selectedBlock, true);
+        cooldown = 0.25F;
+    }
 }
 
 void handlePickBlock(const Input& input,
@@ -279,9 +290,9 @@ void drawCrosshair() {
 
 std::vector<ChunkCoord> initialGridCoord() {
     std::vector<ChunkCoord> coords;
-    for (int cz = -10; cz <= 10; ++cz) {
+    for (int cz = -5; cz <= 5; ++cz) {
         for (int cy = -5; cy <= 5; ++cy) {
-            for (int cx = -10; cx <= 10; ++cx) {
+            for (int cx = -5; cx <= 5; ++cx) {
                 coords.emplace_back(cx, cy, cz);
             }
         }
@@ -298,7 +309,7 @@ Application::Application()
       m_lineShader(config::LINE_VERTEX_SHADER_PATH, config::LINE_FRAGMENT_SHADER_PATH),
       m_blockTextures(TEXTURE_PATHS) {
     auto bodyStart = std::chrono::steady_clock::now();
-    m_player.position = {0.0F, 100.0F, 0.0F};
+    m_player.position = {0.0F, 35.0F, 0.0F};
     spdlog::info("[profile] context+shaders+textures: {:.1f} ms",
                  std::chrono::duration<double, std::milli>(bodyStart - m_appStart).count());
     auto simplex = FastNoise::New<FastNoise::Simplex>();
@@ -407,8 +418,15 @@ void Application::update(float dt) {
     }
 
     // Block interaction
-    handleBreakBlock(m_input, m_chunkManager, m_lookingAt);
-    handlePlaceBlock(m_input, m_chunkManager, m_lookingAt, m_selectedBlock);
+    handleBreakBlock(m_input, m_chunkManager, dt, m_lookingAt, m_breakCooldown);
+    handlePlaceBlock(m_input,
+                     m_chunkManager,
+                     dt,
+                     m_lookingAt,
+                     m_selectedBlock,
+                     m_placeCooldown,
+                     m_player.position,
+                     PLAYER_HITBOX);
     handlePickBlock(m_input, m_chunkManager, m_lookingAt, m_selectedBlock);
 
     // Remesh Dirty Chunk

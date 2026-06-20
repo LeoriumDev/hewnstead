@@ -87,6 +87,8 @@ private:
 
     std::vector<ChunkCoord> m_coords;
     int m_drawnChunks = 0;
+    float m_breakCooldown = 0.0F;
+    float m_placeCooldown = 0.0F;
 };
 
 }  // namespace hs
